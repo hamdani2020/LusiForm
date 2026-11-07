@@ -1,0 +1,56 @@
+# Secrets and local config (never commit)
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials.json
+secrets.*.json
+.kiro/settings/mcp.json
+
+# OS and editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Node / web
+node_modules/
+web/dist/
+web/.vite/
+coverage/
+*.tsbuildinfo
+npm-debug.log*
+pnpm-debug.log*
+yarn-error.log*
+
+# Python / api / worker
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+*.egg-info/
+build/
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+tfplan
+crash.log
+*.tfvars
+!*.tfvars.example
+# Keep the provider lock file committed
+!.terraform.lock.hcl
+
+# Local artifacts
+*.zip
+tmp/
+.agents/
+.worktrees/
