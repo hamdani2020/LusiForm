@@ -6,7 +6,6 @@
 *.key
 credentials.json
 secrets.*.json
-.kiro/settings/mcp.json
 
 # OS and editor
 .DS_Store

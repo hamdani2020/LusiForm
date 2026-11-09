@@ -15,7 +15,8 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
     - _Requirements: 1.1_
   - [ ] 1.2 Set up the Python toolchain for `api/` and `worker/`
     - Python 3.12, `uv` with a pinned lockfile, Ruff (lint and format), mypy,
-      pytest. Pin all versions.
+      pytest. Pin all versions. All tooling runs inside containers (see 1.5 and
+      `.kiro/steering/docker.md`); nothing is installed on the host.
     - Create a small internal shared package for config and structured logging
       that both `api/` and `worker/` import. It must not touch the database.
     - _Requirements: 1.2, 1.4, 1.5, NFR 4_
@@ -23,12 +24,27 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
     - Vite, React, TypeScript, Tailwind, shadcn/ui, ESLint, Vitest, pnpm with a
       lockfile. Pin versions. Port the design tokens from the Stitch project
       (primary `#0f766e`, Inter, JetBrains Mono, 8px/12px radii) into the Tailwind
-      theme.
+      theme. Install and run everything through `docker compose` (no host Node
+      or pnpm).
     - _Requirements: 1.3, 1.5_
-  - [ ] 1.4 Add the CI workflow
+  - [ ] 1.5 Set up the Docker Compose development environment
+    - Add `compose.yaml` and `.env.example` at the repo root. Services: `web`,
+      `api`, `worker`, `db` (PostgreSQL with a healthcheck and named volume),
+      `migrate` (Alembic one-off), and `localstack` (S3, SQS, Secrets Manager).
+    - Add a multi-stage `Dockerfile` and `.dockerignore` in `api/`, `worker/`,
+      and `web/`, each with a `dev` target used by Compose. Pin base image tags.
+    - Bind-mount source for hot reload; keep `.venv` and `node_modules` in named
+      volumes. `api` waits on `db` healthy and `migrate` completed.
+    - Verify that `docker compose up --build` starts all services, that
+      `GET /api/health` returns 200, and that the lint, type-check, and test
+      commands in `docker.md` run in containers.
+    - Terraform is the only tool allowed on the host.
+    - _Requirements: 1.2, 1.3, 1.5_
+  - [ ] 1.6 Add the CI workflow
     - GitHub Actions with a job per package (lint, type-check, unit test) and a
       separate job slot for the isolation suite and the lint-guard (added in
-      tasks 7 and 8).
+      tasks 7 and 8). Jobs run the same Dockerfile `dev` targets used locally
+      where practical.
     - _Requirements: 1.6_
 
 - [ ] 2. Build the API skeleton
