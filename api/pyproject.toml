@@ -1,0 +1,45 @@
+[project]
+name = "lusiform-api"
+version = "0.1.0"
+description = "Lusiform api service"
+requires-python = "==3.12.*"
+dependencies = [
+    "alembic==1.17.0",
+    "fastapi==0.120.0",
+    "lusiform-common",
+    "psycopg[binary]==3.2.11",
+    "sqlalchemy==2.0.44",
+    "uvicorn==0.38.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx==0.28.1",
+    "mypy==1.18.2",
+    "pytest==8.4.2",
+    "ruff==0.14.2",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+lusiform-common = { path = "../common", editable = true }
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "S", "SIM"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S101", "S105", "S106"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

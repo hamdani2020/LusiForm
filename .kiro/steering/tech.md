@@ -62,11 +62,12 @@ mockups and are out of scope.
 
 ## Commands
 
-The repo is being built out. As each package gains a build, prefer its standard
-tooling and record the exact commands here once they exist:
+Docker is the main development environment. Every app runs through Docker
+Compose, and every command runs inside a container. See `docker.md` for the
+service layout and the exact commands.
 
-- `web/`: Vite + npm or pnpm scripts (dev, build, lint, test).
-- `api/` and `worker/`: Python with a pinned toolchain; tests via pytest.
+- `web/`: pnpm scripts (dev, build, lint, test), run via `docker compose`.
+- `api/` and `worker/`: Python with `uv`; tests via pytest, run via `docker compose`.
 - Verify builds and run relevant tests after changes. Use single-run test modes,
   not watch mode.
 

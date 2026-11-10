@@ -5,88 +5,104 @@ satisfies (see `requirements.md`) and follows `design.md`. Run builds and the
 relevant single-run tests after each task, and record the real build and test
 commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
 
-- [ ] 1. Scaffold the monorepo and tooling
-  - [ ] 1.1 Create the package directories and repo-level files
+- [x] 1. Scaffold the monorepo and tooling
+  - [x] 1.1 Create the package directories and repo-level files
     - Create `api/`, `worker/`, `web/`, `templates/`, `infra/` with a README in
       each describing its role from `structure.md`.
     - Add a root `.gitignore`, `.editorconfig`, and a root README that points to
       `docs/` and `.kiro/steering/`.
     - `templates/` gets only a README noting that modules land in a later spec.
     - _Requirements: 1.1_
-  - [ ] 1.2 Set up the Python toolchain for `api/` and `worker/`
+  - [x] 1.2 Set up the Python toolchain for `api/` and `worker/`
     - Python 3.12, `uv` with a pinned lockfile, Ruff (lint and format), mypy,
-      pytest. Pin all versions.
+      pytest. Pin all versions. All tooling runs inside containers (see 1.5 and
+      `.kiro/steering/docker.md`); nothing is installed on the host.
     - Create a small internal shared package for config and structured logging
       that both `api/` and `worker/` import. It must not touch the database.
     - _Requirements: 1.2, 1.4, 1.5, NFR 4_
-  - [ ] 1.3 Set up the `web/` toolchain
+  - [x] 1.3 Set up the `web/` toolchain
     - Vite, React, TypeScript, Tailwind, shadcn/ui, ESLint, Vitest, pnpm with a
       lockfile. Pin versions. Port the design tokens from the Stitch project
       (primary `#0f766e`, Inter, JetBrains Mono, 8px/12px radii) into the Tailwind
-      theme.
+      theme. Install and run everything through `docker compose` (no host Node
+      or pnpm).
     - _Requirements: 1.3, 1.5_
-  - [ ] 1.4 Add the CI workflow
+  - [x] 1.5 Set up the Docker Compose development environment
+    - Add `compose.yaml` and `.env.example` at the repo root. Services: `web`,
+      `api`, `worker`, `db` (PostgreSQL with a healthcheck and named volume),
+      `migrate` (Alembic one-off), and `localstack` (S3, SQS, Secrets Manager).
+    - Add a multi-stage `Dockerfile` and `.dockerignore` in `api/`, `worker/`,
+      and `web/`, each with a `dev` target used by Compose. Pin base image tags.
+    - Bind-mount source for hot reload; keep `.venv` and `node_modules` in named
+      volumes. `api` waits on `db` healthy and `migrate` completed.
+    - Verify that `docker compose up --build` starts all services, that
+      `GET /api/health` returns 200, and that the lint, type-check, and test
+      commands in `docker.md` run in containers.
+    - Terraform is the only tool allowed on the host.
+    - _Requirements: 1.2, 1.3, 1.5_
+  - [x] 1.6 Add the CI workflow
     - GitHub Actions with a job per package (lint, type-check, unit test) and a
       separate job slot for the isolation suite and the lint-guard (added in
-      tasks 7 and 8).
+      tasks 7 and 8). Jobs run the same Dockerfile `dev` targets used locally
+      where practical.
     - _Requirements: 1.6_
 
-- [ ] 2. Build the API skeleton
-  - [ ] 2.1 Create the FastAPI app with `/api` routing and a health endpoint
+- [x] 2. Build the API skeleton
+  - [x] 2.1 Create the FastAPI app with `/api` routing and a health endpoint
     - App factory, `/api` router, `GET /api/health` returning 200 with no auth.
     - Request-id middleware that generates a `request_id` per request.
     - _Requirements: 1.2, 6.2_
-  - [ ] 2.2 Add configuration and structured JSON logging
+  - [x] 2.2 Add configuration and structured JSON logging
     - Typed settings loaded from environment (no secrets in code or committed env
       files). JSON logger writing to stdout.
     - Add a redaction filter that drops known sensitive keys and never logs
       intake free text, secrets, or credentials.
     - Write unit tests for the redaction filter.
     - _Requirements: 6.2, 6.3, NFR 4_
-  - [ ] 2.3 Write a smoke test for the health endpoint
+  - [x] 2.3 Write a smoke test for the health endpoint
     - Assert 200 and that the response needs no auth.
     - _Requirements: 1.2_
 
-- [ ] 3. Create the database schema and migrations
-  - [ ] 3.1 Set up SQLAlchemy models and Alembic
+- [x] 3. Create the database schema and migrations
+  - [x] 3.1 Set up SQLAlchemy models and Alembic
     - SQLAlchemy 2.x declarative models for all 19 tables listed in Requirement
       3.1, using UUID primary keys and `timestamptz` timestamps. Alembic config
       wired to the settings.
     - Models live inside the repository/data package only (needed for the
       lint-guard in task 8).
     - _Requirements: 3.1, 3.2_
-  - [ ] 3.2 Define core tenant tables and constraints
+  - [x] 3.2 Define core tenant tables and constraints
     - `partners`, `users` (unique on `partner_id` + `email`), `user_roles` with
       role constrained to `partner_admin`, `consultant`, `platform_operator`,
       `projects`, `intake_drafts`. Every tenant table has `partner_id` with a
       foreign key to `partners`.
     - _Requirements: 3.2, 3.3, 3.4_
-  - [ ] 3.3 Define version, estimate, and job tables
+  - [x] 3.3 Define version, estimate, and job tables
     - `template_versions` (platform-global, no `partner_id`, status draft /
       published / retired), `project_versions`, `assumption_sets`, `estimates`,
       `generation_jobs` (status queued / running / succeeded / failed),
       `artifacts`, `validation_runs`.
     - _Requirements: 3.1, 3.2_
-  - [ ] 3.4 Define diagram and sandbox deployment tables
+  - [x] 3.4 Define diagram and sandbox deployment tables
     - `architecture_graphs`, `diagram_artifacts`, `sandbox_accounts` (store
       `external_id_ref` as a Secrets Manager reference only), `deployment_plans`,
       `plan_approvals`, `deployments` (action apply or destroy; status queued /
       running / succeeded / failed), and `audit_events`.
     - _Requirements: 3.1, 3.8_
-  - [ ] 3.5 Add immutability and append-only triggers
+  - [x] 3.5 Add immutability and append-only triggers
     - `BEFORE UPDATE OR DELETE` triggers that raise an exception on
       `project_versions`, `template_versions`, `estimates`,
       `architecture_graphs`, and the append-only tables `audit_events`,
       `plan_approvals`, `artifacts`, `validation_runs`. `deployment_plans` blocks
       UPDATE/DELETE of identity and hash fields once created.
     - _Requirements: 3.6, 3.7_
-  - [ ] 3.6 Generate the initial Alembic migration and test the round trip
+  - [x] 3.6 Generate the initial Alembic migration and test the round trip
     - One initial migration creating schema, enums, constraints, and triggers.
     - Write a migration test: `upgrade head` then `downgrade base` on a
       disposable Postgres (testcontainers), asserting a clean state both ways.
     - Document running migrations as a one-off task.
     - _Requirements: 3.5_
-  - [ ] 3.7 Write schema constraint tests
+  - [x] 3.7 Write schema constraint tests
     - Assert email uniqueness per partner, the role constraint, that the
       immutability and append-only triggers reject UPDATE and DELETE, and that no
       column holds a secret value.

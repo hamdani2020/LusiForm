@@ -55,8 +55,8 @@ lusiform/
   .kiro/       Steering, specs, hooks
 ```
 
-Only `docs/` and `.kiro/` exist today. The other directories are created by the
-`foundation` spec.
+Each package directory has a README describing its role. Product and rule
+documents live in [`docs/`](docs/) and [`.kiro/steering/`](.kiro/steering/).
 
 ## Stack
 
@@ -101,8 +101,18 @@ Exactly three: `partner_admin`, `consultant`, and `platform_operator`.
 
 ## Getting started
 
-There is nothing to run yet. Build commands will be recorded in
-`.kiro/steering/tech.md` as each package gains a build. To begin, start with the
+Docker is the development environment. Every app, test run, and package install
+runs in a container through Docker Compose. Only Terraform runs on the host. You
+need Docker Desktop (or Docker Engine with Compose v2) and Terraform 1.10 or later.
+
+There is nothing to run yet. Once the `foundation` spec lands task 1.5:
+
+```
+cp .env.example .env
+docker compose up --build
+```
+
+The full command list is in `.kiro/steering/docker.md`. To begin, start with the
 `foundation` tasks.
 
 ## Security

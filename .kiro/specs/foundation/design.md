@@ -53,6 +53,9 @@ docs/       PRD and Technical Design
   Lint with ESLint, test with Vitest.
 - **Worker:** same Python toolchain as the API, sharing a small internal package
   for config and logging. No shared database access (see security.md).
+- **Local development:** Docker Compose is the development environment. All
+  apps, tests, and package installs run in containers; only Terraform runs on the
+  host. See `.kiro/steering/docker.md`.
 - **CI:** GitHub Actions, one workflow with a job per package (lint, type-check,
   test), plus the isolation suite as a dedicated job. This is the decision left
   open in requirements; GitHub Actions is the default unless you prefer another.
@@ -194,7 +197,8 @@ Two layers:
 
 ### Isolation test suite
 
-- A pytest suite spins up Postgres (testcontainers or a CI service), seeds two
+- A pytest suite runs against the compose `db` Postgres locally (a CI service in
+  CI; avoid Docker-in-Docker testcontainers), seeds two
   partners A and B each with a user and a few rows across tenant tables.
 - For every tenant-scoped endpoint, it issues B's request for A's resource and
   asserts 404, and asserts no write by B touches A's rows. A table-driven test

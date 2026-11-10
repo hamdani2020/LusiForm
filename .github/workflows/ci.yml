@@ -1,0 +1,127 @@
+name: CI
+
+# Runs the same Docker Compose `dev` targets used locally (see
+# .kiro/steering/docker.md). No secrets are used; compose falls back to its
+# local-dev defaults, and LocalStack/Postgres are not started (--no-deps).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  common:
+    name: common (lint, type-check, test)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Create .env from .env.example
+        run: cp .env.example .env
+      # common/ has no image of its own; its tools come from the api dev image
+      # venv (on PATH), which installs common as an editable dependency.
+      - name: Build api dev image
+        run: docker compose build api
+      - name: Ruff lint
+        run: docker compose run --rm --no-deps -w /app/common api ruff check .
+      - name: Ruff format check
+        run: docker compose run --rm --no-deps -w /app/common api ruff format --check .
+      - name: mypy
+        run: docker compose run --rm --no-deps -w /app/common api mypy .
+      - name: pytest
+        run: docker compose run --rm --no-deps -w /app/common api pytest -q -p no:cacheprovider
+
+  api:
+    name: api (lint, type-check, test)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Create .env from .env.example
+        run: cp .env.example .env
+      - name: Build api dev image
+        run: docker compose build api
+      - name: Ruff lint
+        run: docker compose run --rm --no-deps api uv run --frozen ruff check .
+      - name: Ruff format check
+        run: docker compose run --rm --no-deps api uv run --frozen ruff format --check .
+      - name: mypy
+        run: docker compose run --rm --no-deps api uv run --frozen mypy .
+      # Migration and schema tests create throwaway databases on the compose `db`.
+      - name: Start Postgres
+        run: docker compose up -d --wait db
+      - name: pytest
+        run: docker compose run --rm --no-deps api uv run --frozen pytest
+
+  worker:
+    name: worker (lint, type-check, test)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Create .env from .env.example
+        run: cp .env.example .env
+      - name: Build worker dev image
+        run: docker compose build worker
+      - name: Ruff lint
+        run: docker compose run --rm --no-deps worker uv run --frozen ruff check .
+      - name: Ruff format check
+        run: docker compose run --rm --no-deps worker uv run --frozen ruff format --check .
+      - name: mypy
+        run: docker compose run --rm --no-deps worker uv run --frozen mypy .
+      - name: pytest
+        run: docker compose run --rm --no-deps worker uv run --frozen pytest
+
+  web:
+    name: web (lint, type-check, test, build)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Create .env from .env.example
+        run: cp .env.example .env
+      - name: Build web dev image
+        run: docker compose build web
+      - name: Lint
+        run: docker compose run --rm --no-deps web pnpm lint
+      - name: Type-check
+        run: docker compose run --rm --no-deps web pnpm typecheck
+      - name: Unit tests
+        run: docker compose run --rm --no-deps web pnpm test --run
+      - name: Build
+        run: docker compose run --rm --no-deps web pnpm build
+
+  # ---------------------------------------------------------------------------
+  # PLACEHOLDER JOBS. These do NOT provide coverage yet. Each one is skipped
+  # (never run as a passing check) until its task lands, and the `if: false`
+  # must be removed then. Required status checks must not depend on them
+  # before that.
+  # ---------------------------------------------------------------------------
+  isolation-suite-NOT-IMPLEMENTED:
+    name: "tenant isolation suite (NOT IMPLEMENTED, foundation task 7.3)"
+    if: false # Remove in task 7.3 and replace the step with the real suite.
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "Tenant isolation suite is not implemented yet (foundation task 7)."
+
+  lint-guard-NOT-IMPLEMENTED:
+    name: "tenant-access lint guard (NOT IMPLEMENTED, foundation task 8.2)"
+    if: false # Remove in task 8.2 and replace the step with the real guard.
+    runs-on: ubuntu-24.04
+    steps:
+      - run: echo "Tenant-access lint guard is not implemented yet (foundation task 8)."

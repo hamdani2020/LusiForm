@@ -6,6 +6,8 @@
 *.key
 credentials.json
 secrets.*.json
+
+# Local MCP config (holds an access token)
 .kiro/settings/mcp.json
 
 # OS and editor

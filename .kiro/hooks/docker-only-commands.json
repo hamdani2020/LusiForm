@@ -1,0 +1,15 @@
+{
+  "version": "v1",
+  "hooks": [
+    {
+      "name": "Docker-only dev commands",
+      "trigger": "PreToolUse",
+      "description": "Asks for confirmation when a dev tool is run on the host instead of through docker compose.",
+      "matcher": "execute_bash",
+      "action": {
+        "type": "command",
+        "command": "IN=$(cat); echo \"$IN\" | grep -q 'mcp' && exit 0; if echo \"$IN\" | grep -Eq '\"command\"[[:space:]]*:[[:space:]]*\"[[:space:]]*(npm|npx|pnpm|yarn|pytest|uv|pip|pip3|uvicorn|alembic|tflint|checkov|python|python3|node)[[:space:]]' >/dev/null 2>&1; then echo '{\"hookSpecificOutput\":{\"permissionDecision\":\"ask\",\"permissionDecisionReason\":\"Docker is the dev environment. Run this with docker compose run --rm <service> instead of on the host.\"}}'; fi; exit 0"
+      }
+    }
+  ]
+}
