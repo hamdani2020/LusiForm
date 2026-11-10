@@ -1,5 +1,6 @@
 # Lusiform
 
+[![CI](https://github.com/hamdani2020/LusiForm/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/hamdani2020/LusiForm/actions/workflows/ci.yml)
 ![Status](https://img.shields.io/badge/status-specs%20complete-0F766E)
 ![Specs](https://img.shields.io/badge/specs-8-14213D)
 ![Terraform](https://img.shields.io/badge/Terraform-%E2%89%A5%201.10-844FBA?logo=terraform&logoColor=white)
