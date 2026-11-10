@@ -136,13 +136,13 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
       access, and that immutable repositories offer no mutation methods.
     - _Requirements: 4.1, 4.2, 4.3, 3.6, 3.7_
 
-- [ ] 5. Implement authentication and request context
-  - [ ] 5.1 Implement JWT verification against Cognito
+- [x] 5. Implement authentication and request context
+  - [x] 5.1 Implement JWT verification against Cognito
     - Validate signature using the Cognito JWKS (cached, refreshed on key
       rotation), and check `iss`, audience/client id, and `exp`.
     - Return 401 for missing, expired, or invalid tokens.
     - _Requirements: 2.2, 2.4_
-  - [ ] 5.2 Implement the `get_request_context` dependency
+  - [x] 5.2 Implement the `get_request_context` dependency
     - From the verified `sub`, load the `users` row and `user_roles` and build the
       `RequestContext`. Roles come from the database, never from client claims.
     - Return 403 when the user has no active record, or the partner is suspended,
@@ -150,14 +150,14 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
     - Apply the dependency to every router except `/api/health` and the auth
       callback.
     - _Requirements: 2.2, 2.3, 2.5, 5.3_
-  - [ ] 5.3 Implement `require_roles` and the admin/operator routers
+  - [x] 5.3 Implement `require_roles` and the admin/operator routers
     - `require_roles(*roles)` dependency factory. Admin routers require
       `partner_admin` or `platform_operator`; operator-only routers require
       `platform_operator`. Return 403 otherwise.
     - Add a minimal `GET /api/me` returning the caller's id, partner, and roles
       to prove the chain end to end.
     - _Requirements: 5.1, 5.2, 5.3_
-  - [ ] 5.4 Write auth unit and integration tests
+  - [x] 5.4 Write auth unit and integration tests
     - JWT cases: valid, expired, bad signature, wrong issuer, wrong audience.
     - Context resolution, role gating, and 403 for inactive or suspended users.
     - Verify that a client-supplied role value has no effect.

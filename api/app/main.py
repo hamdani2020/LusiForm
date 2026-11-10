@@ -7,6 +7,8 @@ from lusiform_common import configure_logging
 from app.config import ApiSettings, get_settings
 from app.errors import NotAuthorized, NotFound
 from app.middleware import RequestIdMiddleware
+from app.routers import me
+from app.routers.admin import admin_router, operator_router
 
 # Public router: no auth. Only /api/health (and, later, the auth callback).
 public_router = APIRouter(prefix="/api")
@@ -36,6 +38,9 @@ def create_app(settings: ApiSettings | None = None) -> FastAPI:
     app.add_exception_handler(NotFound, _not_found)
     app.add_exception_handler(NotAuthorized, _forbidden)
     app.include_router(public_router)
+    app.include_router(me.router)
+    app.include_router(admin_router)
+    app.include_router(operator_router)
     return app
 
 

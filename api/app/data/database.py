@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import ApiSettings
 from app.context import RequestContext
+from app.data.identity import Identity, resolve_identity
 from app.data.repositories import (
     AuditEventRepository,
     IntakeDraftRepository,
@@ -63,6 +64,11 @@ class Database:
     def operator(self, ctx: RequestContext) -> Iterator[OperatorRepositories]:
         with self._sessions() as session, session.begin():
             yield OperatorRepositories(ctx, session)
+
+    def resolve_identity(self, cognito_sub: str) -> Identity | None:
+        """Look up the caller by verified Cognito subject (pre-context; see identity.py)."""
+        with self._sessions() as session:
+            return resolve_identity(session, cognito_sub)
 
     def dispose(self) -> None:
         self._engine.dispose()
