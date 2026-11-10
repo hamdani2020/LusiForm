@@ -108,8 +108,8 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
       column holds a secret value.
     - _Requirements: 3.3, 3.4, 3.6, 3.7, 3.8_
 
-- [ ] 4. Implement the repository layer
-  - [ ] 4.1 Create the `RequestContext` type and repository base
+- [x] 4. Implement the repository layer
+  - [x] 4.1 Create the `RequestContext` type and repository base
     - Frozen `RequestContext` (user id, partner id, roles, request id).
     - A `Repository` base that takes a context and a private session and adds
       `WHERE partner_id = ctx.partner_id` to every query on tenant tables. There
@@ -119,11 +119,11 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
     - Session factory is private to the data package; handlers never receive a
       raw session.
     - _Requirements: 4.1, 4.2_
-  - [ ] 4.2 Implement a uniform `NotFound` behavior
+  - [x] 4.2 Implement a uniform `NotFound` behavior
     - Not-found and cross-partner lookups raise the same `NotFound`, which the API
       maps to 404 without disclosing existence.
     - _Requirements: 4.3_
-  - [ ] 4.3 Implement repositories for the foundation entities
+  - [x] 4.3 Implement repositories for the foundation entities
     - `partners` (operator only), `users`, `user_roles`, `projects`,
       `intake_drafts`, and `audit_events` (insert only).
     - Immutable and append-only repositories expose `add` and read methods only;
@@ -131,7 +131,7 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
     - Other tables get repositories in the specs that use them; the base and
       guards are in place now.
     - _Requirements: 3.6, 3.7, 4.1_
-  - [ ] 4.4 Write unit tests for the repository layer
+  - [x] 4.4 Write unit tests for the repository layer
     - Partner scoping on every read and write, `NotFound` on cross-partner
       access, and that immutable repositories offer no mutation methods.
     - _Requirements: 4.1, 4.2, 4.3, 3.6, 3.7_
