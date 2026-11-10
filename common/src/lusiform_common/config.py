@@ -16,6 +16,6 @@ class BaseAppSettings(BaseSettings):
     model_config = SettingsConfigDict(env_file=None, extra="ignore", frozen=True)
 
     service_name: str = Field(default="lusiform", min_length=1)
-    environment: Literal["local", "dev", "pilot", "prod"] = "local"
+    environment: Literal["local", "staging", "prod"] = "local"
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = "INFO"
     aws_region: str = "us-east-1"

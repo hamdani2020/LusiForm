@@ -4,10 +4,10 @@ from app.config import ApiSettings
 
 
 def test_settings_load_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("ENVIRONMENT", "dev")
+    monkeypatch.setenv("ENVIRONMENT", "staging")
     monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://u:pw@db/x")
     s = ApiSettings()
-    assert s.environment == "dev"
+    assert s.environment == "staging"
     assert s.database_url is not None
     assert s.database_url.get_secret_value().endswith("@db/x")
 

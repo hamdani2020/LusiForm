@@ -1,6 +1,7 @@
 import json
 
 import pytest
+from pydantic import ValidationError
 
 from lusiform_common import (
     BaseAppSettings,
@@ -13,11 +14,19 @@ from lusiform_common import (
 
 
 def test_settings_read_env(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setenv("ENVIRONMENT", "dev")
+    monkeypatch.setenv("ENVIRONMENT", "staging")
     monkeypatch.setenv("LOG_LEVEL", "DEBUG")
     s = BaseAppSettings()
-    assert s.environment == "dev"
+    assert s.environment == "staging"
     assert s.log_level == "DEBUG"
+
+
+@pytest.mark.parametrize("name", ["dev", "pilot", "production", ""])
+def test_unknown_environment_names_are_rejected(monkeypatch: pytest.MonkeyPatch, name: str) -> None:
+    # Only local (Docker Compose), staging, and prod exist.
+    monkeypatch.setenv("ENVIRONMENT", name)
+    with pytest.raises(ValidationError):
+        BaseAppSettings()
 
 
 def test_log_line_has_context_and_redacts(capsys: pytest.CaptureFixture[str]) -> None:

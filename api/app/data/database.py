@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import ApiSettings
 from app.context import RequestContext
+from app.data.bootstrap import BootstrapResult, bootstrap_platform_operator
 from app.data.identity import Identity, resolve_identity
 from app.data.repositories import (
     AuditEventRepository,
@@ -73,6 +74,23 @@ class Database:
         """Look up the caller by verified Cognito subject (pre-context; see identity.py)."""
         with self._sessions() as session:
             return resolve_identity(session, cognito_sub)
+
+    def bootstrap_platform_operator(
+        self,
+        *,
+        partner_name: str,
+        email: str,
+        cognito_sub: str,
+        display_name: str | None = None,
+    ) -> BootstrapResult:
+        """One-time creation of the first platform operator (see bootstrap.py)."""
+        return bootstrap_platform_operator(
+            self._engine,
+            partner_name=partner_name,
+            email=email,
+            cognito_sub=cognito_sub,
+            display_name=display_name,
+        )
 
     def dispose(self) -> None:
         self._engine.dispose()

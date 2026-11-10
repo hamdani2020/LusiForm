@@ -1,0 +1,8 @@
+# Copy to terraform.tfvars (git-ignored) and fill in. None of these are secrets, but they
+# are deployment-specific, so they are not committed.
+aws_region            = "us-east-1"
+certificate_arn       = "arn:aws:acm:us-east-1:ACCOUNT_ID:certificate/CERTIFICATE_ID"
+cognito_domain_prefix = "lusiform-prod-CHANGE-ME"
+web_base_urls         = ["https://prod.app.example.com"]
+api_image_tag         = "CHANGE-ME"
+worker_image_tag      = "CHANGE-ME"

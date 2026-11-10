@@ -48,6 +48,8 @@ tfplan
 crash.log
 *.tfvars
 !*.tfvars.example
+# Terraform backend settings (state bucket); copy from backend.hcl.example
+infra/envs/*/backend.hcl
 # Keep the provider lock file committed
 !.terraform.lock.hcl
 

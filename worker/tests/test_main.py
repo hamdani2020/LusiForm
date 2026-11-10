@@ -84,13 +84,13 @@ def test_reads_config_from_the_environment(monkeypatch: pytest.MonkeyPatch) -> N
     monkeypatch.setenv("JOB_QUEUE_NAME", "lusiform-jobs-local")
     monkeypatch.setenv("ARTIFACT_BUCKET", "lusiform-artifacts-local")
     monkeypatch.setenv("POLL_WAIT_SECONDS", "10")
-    monkeypatch.setenv("ENVIRONMENT", "dev")
+    monkeypatch.setenv("ENVIRONMENT", "staging")
     s = WorkerSettings()
     assert s.service_name == "lusiform-worker"
     assert s.job_queue_name == "lusiform-jobs-local"
     assert s.artifact_bucket == "lusiform-artifacts-local"
     assert s.poll_wait_seconds == 10
-    assert s.environment == "dev"
+    assert s.environment == "staging"
 
 
 def test_queue_must_be_configured(monkeypatch: pytest.MonkeyPatch) -> None:

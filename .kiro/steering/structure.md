@@ -11,7 +11,7 @@ lusiform/
   web/         React (Vite) + shadcn/ui + Tailwind consultant and admin UI.
   templates/   The startup reference architecture: Terraform modules with
                parameter schemas, versioned.
-  infra/       Terraform for the Lusiform platform itself (dev, pilot, prod).
+  infra/       Terraform for the Lusiform platform itself (staging, prod).
   docs/        PRD and Technical Design (source of truth).
   .kiro/       Steering, specs, hooks, settings.
 ```

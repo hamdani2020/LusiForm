@@ -246,18 +246,18 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
       the worker package has no dependency on the API's data package.
     - _Requirements: 1.4_
 
-- [ ] 11. Define platform infrastructure stubs
-  - [ ] 11.1 Write Terraform for the foundation resources in `infra/`
+- [x] 11. Define platform infrastructure stubs
+  - [x] 11.1 Write Terraform for the foundation resources in `infra/`
     - Cognito user pool and app client (hosted login, email and password, no
       federation), RDS PostgreSQL with KMS encryption and backups, S3 artifact
       bucket with KMS, SQS job queue, and ECS service definitions for the API and
       worker with separate task roles.
     - Use Terraform `>= 1.10`, pinned providers, and the S3 backend with
-      `use_lockfile = true` (no DynamoDB). Separate `dev`, `pilot`, and `prod`
+      `use_lockfile = true` (no DynamoDB). Separate `staging` and `prod`
       environments.
     - Run `terraform fmt` and `terraform validate`. Do not apply.
     - _Requirements: NFR 1, NFR 2_
-  - [ ] 11.2 Add the operator bootstrap task
+  - [x] 11.2 Add the operator bootstrap task
     - A documented, separate task that creates the first `platform_operator`, so
       migrations stay data-free.
     - _Requirements: 5.2_
