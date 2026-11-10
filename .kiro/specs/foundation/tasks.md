@@ -63,46 +63,46 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
     - Assert 200 and that the response needs no auth.
     - _Requirements: 1.2_
 
-- [ ] 3. Create the database schema and migrations
-  - [ ] 3.1 Set up SQLAlchemy models and Alembic
+- [x] 3. Create the database schema and migrations
+  - [x] 3.1 Set up SQLAlchemy models and Alembic
     - SQLAlchemy 2.x declarative models for all 19 tables listed in Requirement
       3.1, using UUID primary keys and `timestamptz` timestamps. Alembic config
       wired to the settings.
     - Models live inside the repository/data package only (needed for the
       lint-guard in task 8).
     - _Requirements: 3.1, 3.2_
-  - [ ] 3.2 Define core tenant tables and constraints
+  - [x] 3.2 Define core tenant tables and constraints
     - `partners`, `users` (unique on `partner_id` + `email`), `user_roles` with
       role constrained to `partner_admin`, `consultant`, `platform_operator`,
       `projects`, `intake_drafts`. Every tenant table has `partner_id` with a
       foreign key to `partners`.
     - _Requirements: 3.2, 3.3, 3.4_
-  - [ ] 3.3 Define version, estimate, and job tables
+  - [x] 3.3 Define version, estimate, and job tables
     - `template_versions` (platform-global, no `partner_id`, status draft /
       published / retired), `project_versions`, `assumption_sets`, `estimates`,
       `generation_jobs` (status queued / running / succeeded / failed),
       `artifacts`, `validation_runs`.
     - _Requirements: 3.1, 3.2_
-  - [ ] 3.4 Define diagram and sandbox deployment tables
+  - [x] 3.4 Define diagram and sandbox deployment tables
     - `architecture_graphs`, `diagram_artifacts`, `sandbox_accounts` (store
       `external_id_ref` as a Secrets Manager reference only), `deployment_plans`,
       `plan_approvals`, `deployments` (action apply or destroy; status queued /
       running / succeeded / failed), and `audit_events`.
     - _Requirements: 3.1, 3.8_
-  - [ ] 3.5 Add immutability and append-only triggers
+  - [x] 3.5 Add immutability and append-only triggers
     - `BEFORE UPDATE OR DELETE` triggers that raise an exception on
       `project_versions`, `template_versions`, `estimates`,
       `architecture_graphs`, and the append-only tables `audit_events`,
       `plan_approvals`, `artifacts`, `validation_runs`. `deployment_plans` blocks
       UPDATE/DELETE of identity and hash fields once created.
     - _Requirements: 3.6, 3.7_
-  - [ ] 3.6 Generate the initial Alembic migration and test the round trip
+  - [x] 3.6 Generate the initial Alembic migration and test the round trip
     - One initial migration creating schema, enums, constraints, and triggers.
     - Write a migration test: `upgrade head` then `downgrade base` on a
       disposable Postgres (testcontainers), asserting a clean state both ways.
     - Document running migrations as a one-off task.
     - _Requirements: 3.5_
-  - [ ] 3.7 Write schema constraint tests
+  - [x] 3.7 Write schema constraint tests
     - Assert email uniqueness per partner, the role constraint, that the
       immutability and append-only triggers reject UPDATE and DELETE, and that no
       column holds a secret value.
