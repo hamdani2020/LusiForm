@@ -17,6 +17,7 @@ from app.data.identity import Identity, resolve_identity
 from app.data.repositories import (
     AuditEventRepository,
     IntakeDraftRepository,
+    OperatorAuditRepository,
     PartnerRepository,
     ProjectRepository,
     TemplateVersionRepository,
@@ -42,6 +43,7 @@ class OperatorRepositories:
     def __init__(self, ctx: RequestContext, session: Session) -> None:
         self.partners = PartnerRepository(ctx, session)
         self.template_versions = TemplateVersionRepository(ctx, session)
+        self.audit = OperatorAuditRepository(ctx, session)
 
 
 class Database:

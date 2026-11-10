@@ -11,6 +11,7 @@ from typing import Any
 from sqlalchemy import delete, select
 from sqlalchemy.engine import CursorResult
 
+from app.data.audit_payload import sanitize
 from app.data.base import IdRepository, MutableRepository, OperatorRepository, TenantRepository
 from app.data.models import (
     AuditEvent,
@@ -140,8 +141,8 @@ class AuditEventRepository(IdRepository[AuditEvent]):
             action=action,
             target_type=target_type,
             target_id=target_id,
-            before_json=before,
-            after_json=after,
+            before_json=sanitize(before),
+            after_json=sanitize(after),
         )
 
 
@@ -199,5 +200,34 @@ class TemplateVersionRepository(OperatorRepository):
     def set_status(self, id: uuid.UUID, status: TemplateStatus) -> TemplateVersion:  # noqa: A002
         row = self.get(id)
         row.status = status.value
+        self._session.flush()
+        return row
+
+
+class OperatorAuditRepository(OperatorRepository):
+    """Insert-only audit for cross-partner operator access.
+
+    Defaults to the operator's own partner. A route that reads one specific partner's
+    data passes that partner's id so the event is attributable to the data owner.
+    """
+
+    def add(
+        self,
+        action: str,
+        target_type: str,
+        *,
+        partner_id: uuid.UUID | None = None,
+        target_id: uuid.UUID | None = None,
+        after: dict[str, Any] | None = None,
+    ) -> AuditEvent:
+        row = AuditEvent(
+            partner_id=partner_id or self._ctx.partner_id,
+            actor_user_id=self._ctx.user_id,
+            action=action,
+            target_type=target_type,
+            target_id=target_id,
+            after_json=sanitize(after),
+        )
+        self._session.add(row)
         self._session.flush()
         return row

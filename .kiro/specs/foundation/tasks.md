@@ -163,18 +163,18 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
     - Verify that a client-supplied role value has no effect.
     - _Requirements: 2.2, 2.3, 2.5, 5.1, 5.2, 5.3_
 
-- [ ] 6. Implement audit and cross-partner access recording
-  - [ ] 6.1 Build the audit helper
+- [x] 6. Implement audit and cross-partner access recording
+  - [x] 6.1 Build the audit helper
     - Append an `audit_events` row in the same transaction as the write it
       records, with actor, partner, action, target type and id, and before/after
       JSON.
     - _Requirements: 6.1_
-  - [ ] 6.2 Add the operator cross-partner router and its audit
+  - [x] 6.2 Add the operator cross-partner router and its audit
     - A separate router prefix for platform operator cross-partner reads that
       always writes an `audit_events` row for the access.
     - Start with `GET /api/admin/partners` as the first operator route.
     - _Requirements: 4.4, 5.2, 6.1_
-  - [ ] 6.3 Write audit tests
+  - [x] 6.3 Write audit tests
     - Assert admin writes append audit rows atomically with the write, that
       operator cross-partner access is audited, and that audit rows cannot be
       updated or deleted.
