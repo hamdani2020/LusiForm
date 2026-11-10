@@ -234,14 +234,14 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
       hidden for consultants.
     - _Requirements: 2.6, 5.1_
 
-- [ ] 10. Build the worker skeleton
-  - [ ] 10.1 Create the queue-polling loop
+- [x] 10. Build the worker skeleton
+  - [x] 10.1 Create the queue-polling loop
     - Read config from the shared package, poll SQS, and log structured output.
       No job handlers yet; unknown job types are logged and left for later specs.
     - Document the task role boundary: artifact bucket and job queue only, no
       tenant database access.
     - _Requirements: 1.4, 6.2_
-  - [ ] 10.2 Write worker tests
+  - [x] 10.2 Write worker tests
     - Starts, reads config, polls a stubbed queue, and shuts down cleanly. Assert
       the worker package has no dependency on the API's data package.
     - _Requirements: 1.4_
