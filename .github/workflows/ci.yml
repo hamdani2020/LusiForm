@@ -62,7 +62,7 @@ jobs:
       - name: Start Postgres
         run: docker compose up -d --wait db
       - name: pytest
-        run: docker compose run --rm --no-deps api uv run --frozen pytest
+        run: docker compose run --rm --no-deps api uv run --frozen pytest --ignore=tests/isolation
 
   worker:
     name: worker (lint, type-check, test)
@@ -106,22 +106,42 @@ jobs:
       - name: Build
         run: docker compose run --rm --no-deps web pnpm build
 
-  # ---------------------------------------------------------------------------
-  # PLACEHOLDER JOBS. These do NOT provide coverage yet. Each one is skipped
-  # (never run as a passing check) until its task lands, and the `if: false`
-  # must be removed then. Required status checks must not depend on them
-  # before that.
-  # ---------------------------------------------------------------------------
-  isolation-suite-NOT-IMPLEMENTED:
-    name: "tenant isolation suite (NOT IMPLEMENTED, foundation task 7.3)"
-    if: false # Remove in task 7.3 and replace the step with the real suite.
+  # Tenant isolation suite (foundation task 7). Its own job so a cross-partner leak is
+  # visible at a glance. The api job above ignores tests/isolation to avoid running it twice.
+  isolation-suite:
+    name: tenant isolation suite
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
-      - run: echo "Tenant isolation suite is not implemented yet (foundation task 7)."
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Create .env from .env.example
+        run: cp .env.example .env
+      - name: Build api dev image
+        run: docker compose build api
+      # The suite creates throwaway databases on the compose `db` Postgres.
+      - name: Start Postgres
+        run: docker compose up -d --wait db
+      - name: Isolation suite
+        run: docker compose run --rm --no-deps api uv run --frozen pytest tests/isolation
 
-  lint-guard-NOT-IMPLEMENTED:
-    name: "tenant-access lint guard (NOT IMPLEMENTED, foundation task 8.2)"
-    if: false # Remove in task 8.2 and replace the step with the real guard.
+  # Tenant-access lint guard (foundation task 8): fails the build when code outside
+  # api/app/data/ imports the ORM models, sqlalchemy or a DB driver, or executes SQL.
+  # Also runs the guard's own tests, which prove it flags a deliberate violation.
+  lint-guard:
+    name: tenant-access lint guard
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      - run: echo "Tenant-access lint guard is not implemented yet (foundation task 8)."
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Create .env from .env.example
+        run: cp .env.example .env
+      - name: Build api dev image
+        run: docker compose build api
+      - name: Guard (real codebase)
+        run: docker compose run --rm --no-deps api python -m tools.check_tenant_access app
+      - name: Guard tests (flags a deliberate violation, codebase clean)
+        run: docker compose run --rm --no-deps api uv run --frozen pytest tests/test_tenant_guard.py

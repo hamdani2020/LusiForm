@@ -78,6 +78,7 @@ docker compose run --rm api uv run mypy .
 docker compose run --rm worker uv run pytest
 docker compose run --rm worker uv run ruff check .
 docker compose run --rm worker uv run mypy .
+docker compose run --rm --no-deps api python -m tools.check_tenant_access app  # tenant-access guard
 docker compose run --rm web pnpm lint
 docker compose run --rm web pnpm typecheck
 docker compose run --rm web pnpm test --run

@@ -180,29 +180,29 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
       updated or deleted.
     - _Requirements: 6.1, 4.4, 3.7_
 
-- [ ] 7. Build the tenant isolation test suite
-  - [ ] 7.1 Create the two-partner fixtures
+- [x] 7. Build the tenant isolation test suite
+  - [x] 7.1 Create the two-partner fixtures
     - Testcontainers Postgres, migrated to head. Seed partners A and B, each with
       users in each role and rows across the tenant tables that exist so far.
     - _Requirements: 4.6_
-  - [ ] 7.2 Write the table-driven isolation tests
+  - [x] 7.2 Write the table-driven isolation tests
     - Enumerate tenant-scoped endpoints; for each, assert B requesting A's
       resource gets 404 and that a write by B never touches A's rows. New
       endpoints must be added to the table to be covered.
     - Add a test that fails if a registered tenant-scoped route is missing from the
       table, so coverage cannot silently lapse.
     - _Requirements: 4.3, 4.6, NFR 3_
-  - [ ] 7.3 Wire the suite into CI as its own job
+  - [x] 7.3 Wire the suite into CI as its own job
     - The job must pass for the pipeline to pass.
     - _Requirements: 4.6, 1.6_
 
-- [ ] 8. Add the tenant-access lint guard
-  - [ ] 8.1 Implement the guard
+- [x] 8. Add the tenant-access lint guard
+  - [x] 8.1 Implement the guard
     - An AST-based check, run in CI, that fails the build when SQLAlchemy session
       execution or ORM model imports appear outside the repository package.
       Allowlist the repository package and migrations.
     - _Requirements: 4.5_
-  - [ ] 8.2 Prove the guard works
+  - [x] 8.2 Prove the guard works
     - Add a test fixture containing a deliberate violation and assert the guard
       flags it; assert the real codebase is clean.
     - Wire the guard into CI.
