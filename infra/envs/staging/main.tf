@@ -99,6 +99,7 @@ module "alb" {
   public_subnet_ids   = module.network.public_subnet_ids
   security_group_id   = module.network.security_group_ids.alb
   certificate_arn     = var.certificate_arn
+  require_https       = local.require_https
   target_port         = module.network.api_port
   deletion_protection = local.deletion_protection
 }
@@ -126,7 +127,7 @@ module "api_service" {
   log_retention_days = local.log_retention_days
 
   target_group_arn           = module.alb.target_group_arn
-  load_balancer_listener_arn = module.alb.https_listener_arn
+  load_balancer_listener_arn = module.alb.listener_arn
 
   database = {
     address                = module.rds.address

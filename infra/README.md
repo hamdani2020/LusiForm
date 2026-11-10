@@ -62,11 +62,11 @@ change in `settings.tf` affects only its own.
 | --- | --- | --- |
 | Where ECS tasks run | public subnets, public IPs | private subnets, no public IPs |
 | NAT gateways | none | 2 (one per AZ) |
-| Load balancer | yes (stable HTTPS URL) | yes |
+| Load balancer | yes; plain HTTP until a certificate is set | yes, HTTPS only (certificate required) |
 | API / worker tasks | 1 / 1 | 2 / 2 |
 | RDS | db.t3.micro, single-AZ, 7-day backups | db.t3.medium, Multi-AZ, 14 days |
 | Deletion protection | on | on |
-| Log retention | none: kept forever | 365 days |
+| Log retention | 7 days | 365 days |
 | Cognito sign-in from `http://localhost:5173` | allowed | not allowed |
 
 **Why staging has no NAT gateway.** To save cost, staging's tasks get public IPs for their
@@ -77,10 +77,19 @@ and the database stays in the private subnets with no internet route. Set by
 `nat_gateway_count = 0` and `tasks_in_public_subnets = true` in `envs/staging/settings.tf`;
 the network module refuses `nat_gateway_count = 0` with tasks in private subnets.
 
-**Staging log retention.** Staging sets no retention (`log_retention_days = null`), so every
-log group (API, migrate, bootstrap, worker, VPC flow logs) keeps its events forever and its
-storage grows over time. Flow logs are the highest-volume group. Set a number of days in
-`envs/staging/settings.tf` to cap them again; prod keeps 365 days.
+**Staging without a domain (no certificate).** `certificate_arn` is optional. Without it,
+staging's load balancer serves plain HTTP on port 80 and forwards to the API; with it, the
+load balancer serves HTTPS on 443 and port 80 only redirects. Either way the load balancer
+reaches the API over TLS (the target group is HTTPS on 8443). Without a certificate, clients
+reach the load balancer unencrypted, so sign-in tokens sent to the staging API travel in
+clear text: this is a deliberate exception to `security.md`'s "TLS everywhere", for staging
+only, until it has a domain. `terraform output api_base_url` shows `http://` or `https://`
+accordingly. Prod sets `require_https = true`, so Terraform refuses to plan prod without a
+certificate. To switch staging to HTTPS, set `certificate_arn` (and `web_base_urls`, if the
+web app gets a hosted origin) in `envs/staging/terraform.tfvars`.
+
+**Log retention.** `log_retention_days` is optional in the modules; `null` keeps a log
+group's events forever. Staging keeps 7 days and prod 365.
 
 ### Local sign-in with the staging user pool
 
@@ -109,9 +118,10 @@ as test accounts.
 
 - **Encryption at rest:** RDS, Performance Insights, the RDS master secret, S3, SQS, ECR,
   and every CloudWatch log group use the environment's KMS key.
-- **In transit:** the ALB accepts TLS 1.2+ (HTTP only redirects to HTTPS), forwards to the
-  API over HTTPS, and RDS has `rds.force_ssl = 1`. The bucket and queues deny non-TLS
-  requests.
+- **In transit:** with a certificate (required in prod) the ALB accepts TLS 1.2+ and HTTP
+  only redirects to HTTPS; staging without one accepts plain HTTP (see above). The ALB
+  always forwards to the API over HTTPS, RDS has `rds.force_ssl = 1`, and the bucket and
+  queues deny non-TLS requests.
 - **Network:** the database runs in private subnets with no internet route and accepts
   connections only from the API security group (API, migrate, bootstrap). In prod the
   services also run in private subnets with no public IPs; in staging they run in public
@@ -135,11 +145,14 @@ as test accounts.
 
 Plan and apply are deliberate, manual steps. Nothing here runs `apply` automatically.
 
+Each environment's state bucket, region, and key are set in its `backend.tf`. Staging
+and prod share the bucket but must keep their own key (`staging.tfstate`,
+`prod.tfstate`); pointing both at one key would make a plan in one environment rewrite the
+other's resources. Deployment-specific values go in `terraform.tfvars` (git-ignored).
+
 ```
 cd infra/envs/staging
-cp backend.hcl.example backend.hcl          # state bucket + region (git-ignored)
-cp terraform.tfvars.example terraform.tfvars
-terraform init -backend-config=backend.hcl
+terraform init
 terraform fmt -check -recursive ../..
 terraform validate
 terraform plan -out=plan.tfplan             # review, then: terraform apply plan.tfplan
@@ -153,10 +166,14 @@ terraform -chdir=infra/envs/staging validate
 ```
 
 Module tests, with a mocked AWS provider (no credentials, no AWS calls). The network test
-checks where tasks run in each environment and that "no NAT, private tasks" is refused:
+checks where tasks run in each environment and that "no NAT, private tasks" is refused; the
+alb test checks the listeners with and without a certificate and that prod refuses to plan
+without one:
 
 ```
 cd infra/modules/network && terraform init -backend=false && terraform test
+cd infra/modules/alb && terraform init -backend=false && terraform test
+cd infra/modules/cognito && terraform init -backend=false && terraform test
 ```
 
 ## One-off tasks

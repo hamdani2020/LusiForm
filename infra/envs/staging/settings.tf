@@ -15,10 +15,10 @@ locals {
 
   deletion_protection = true
 
-  # No log retention: staging's log groups keep events forever (no expiry).
+  # Staging keeps its log groups' events for 7 days.
   log_retention_days = 7
 
-  # The local Vite dev server may sign in against the staging user pool, so the web app can
-  # be tested locally with real Cognito (see infra/README.md, "Local sign-in").
+  require_https = false
+
   extra_web_base_urls = ["http://localhost:5173"]
 }

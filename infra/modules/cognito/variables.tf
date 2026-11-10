@@ -5,6 +5,11 @@ variable "name_prefix" {
 variable "domain_prefix" {
   description = "Prefix for the hosted login domain (<prefix>.auth.<region>.amazoncognito.com). Globally unique."
   type        = string
+
+  validation {
+    condition     = can(regex("^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$", var.domain_prefix)) && !can(regex("aws|amazon|cognito", var.domain_prefix))
+    error_message = "domain_prefix must be 1-63 lowercase letters, digits, or hyphens (no leading or trailing hyphen), and may not contain \"aws\", \"amazon\", or \"cognito\"."
+  }
 }
 
 variable "web_base_urls" {

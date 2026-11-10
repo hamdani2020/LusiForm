@@ -1,5 +1,14 @@
-# Public application load balancer for the API. TLS 1.2+ in, HTTPS to the targets
-# (TLS from the load balancer to the service, security.md). HTTP only redirects.
+# Public application load balancer for the API. It always forwards to the API over HTTPS
+# (TLS from the load balancer to the service, security.md).
+#
+#   with a certificate     HTTPS on 443 (TLS 1.2+); HTTP on 80 only redirects to HTTPS
+#   without a certificate  HTTP on 80 forwards to the API. Clients reach the load balancer
+#                          unencrypted, so tokens travel in clear text. Allowed only when
+#                          require_https = false (staging until it has a domain).
+
+locals {
+  https_enabled = var.certificate_arn != null
+}
 
 resource "aws_lb" "this" {
   name               = "${var.name_prefix}-api"
@@ -10,6 +19,13 @@ resource "aws_lb" "this" {
 
   drop_invalid_header_fields = true
   enable_deletion_protection = var.deletion_protection
+
+  lifecycle {
+    precondition {
+      condition     = local.https_enabled || !var.require_https
+      error_message = "This environment requires HTTPS: set certificate_arn (an ACM certificate in the same region)."
+    }
+  }
 }
 
 resource "aws_lb_target_group" "api" {
@@ -32,7 +48,11 @@ resource "aws_lb_target_group" "api" {
   }
 }
 
+# --- with a certificate ---
+
 resource "aws_lb_listener" "https" {
+  count = local.https_enabled ? 1 : 0
+
   load_balancer_arn = aws_lb.this.arn
   port              = 443
   protocol          = "HTTPS"
@@ -46,6 +66,8 @@ resource "aws_lb_listener" "https" {
 }
 
 resource "aws_lb_listener" "http_redirect" {
+  count = local.https_enabled ? 1 : 0
+
   load_balancer_arn = aws_lb.this.arn
   port              = 80
   protocol          = "HTTP"
@@ -57,5 +79,20 @@ resource "aws_lb_listener" "http_redirect" {
       protocol    = "HTTPS"
       status_code = "HTTP_301"
     }
+  }
+}
+
+# --- without a certificate ---
+
+resource "aws_lb_listener" "http_forward" {
+  count = local.https_enabled ? 0 : 1
+
+  load_balancer_arn = aws_lb.this.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api.arn
   }
 }

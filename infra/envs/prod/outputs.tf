@@ -4,6 +4,11 @@ output "api_load_balancer_dns_name" {
   value = module.alb.dns_name
 }
 
+output "api_base_url" {
+  description = "https:// with a certificate; http:// without one (staging until it has a domain)."
+  value       = module.alb.base_url
+}
+
 output "web_app_settings" {
   description = "Values for the web app's VITE_COGNITO_* settings."
   value = {

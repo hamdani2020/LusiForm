@@ -20,5 +20,8 @@ locals {
   deletion_protection = true
   log_retention_days  = 365
 
+  # Prod refuses to plan without certificate_arn: clients reach it over HTTPS only.
+  require_https = true
+
   extra_web_base_urls = []
 }

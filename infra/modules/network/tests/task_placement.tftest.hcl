@@ -128,7 +128,7 @@ run "only_two_azs_are_used" {
   }
 }
 
-run "staging_keeps_flow_logs_forever_when_retention_is_unset" {
+run "unset_retention_keeps_flow_logs_forever" {
   command = plan
 
   variables {
