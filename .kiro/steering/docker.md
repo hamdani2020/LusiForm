@@ -76,15 +76,29 @@ docker compose run --rm api uv run pytest
 docker compose run --rm api uv run ruff check .
 docker compose run --rm api uv run mypy .
 docker compose run --rm worker uv run pytest
+docker compose run --rm worker uv run ruff check .
+docker compose run --rm worker uv run mypy .
 docker compose run --rm web pnpm lint
+docker compose run --rm web pnpm typecheck
 docker compose run --rm web pnpm test --run
 docker compose run --rm web pnpm build
 docker compose run --rm api uv add <pkg>
 docker compose run --rm web pnpm add <pkg>
 ```
 
-These are the intended commands. Update this table and list as services land,
-and keep them in sync with the `foundation` spec tasks.
+Add `--no-deps` to a `run` command to skip starting `db`/`localstack` when the
+command does not need them (lint, type-check, unit tests).
+
+If image builds fail with DNS errors (`failed to lookup address`, `EAI_AGAIN`),
+set `BUILD_DNS` (for example `BUILD_DNS=1.1.1.1 docker compose up --build`, or
+in the git-ignored `.env`). It only overrides the resolver for `RUN` steps.
+
+The `api_venv`, `worker_venv`, and `web_node_modules` named volumes are seeded
+from the image the first time they are created. After a dependency change and
+rebuild, `uv run` and the web startup install re-sync them; if a volume is
+stuck stale, remove it (`docker volume rm lusiform_<name>`) and start again.
+
+Keep this list in sync with the `foundation` spec tasks as services land.
 
 ## Where files go
 

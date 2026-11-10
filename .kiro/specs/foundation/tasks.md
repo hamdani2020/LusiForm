@@ -5,29 +5,29 @@ satisfies (see `requirements.md`) and follows `design.md`. Run builds and the
 relevant single-run tests after each task, and record the real build and test
 commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
 
-- [ ] 1. Scaffold the monorepo and tooling
-  - [ ] 1.1 Create the package directories and repo-level files
+- [x] 1. Scaffold the monorepo and tooling
+  - [x] 1.1 Create the package directories and repo-level files
     - Create `api/`, `worker/`, `web/`, `templates/`, `infra/` with a README in
       each describing its role from `structure.md`.
     - Add a root `.gitignore`, `.editorconfig`, and a root README that points to
       `docs/` and `.kiro/steering/`.
     - `templates/` gets only a README noting that modules land in a later spec.
     - _Requirements: 1.1_
-  - [ ] 1.2 Set up the Python toolchain for `api/` and `worker/`
+  - [x] 1.2 Set up the Python toolchain for `api/` and `worker/`
     - Python 3.12, `uv` with a pinned lockfile, Ruff (lint and format), mypy,
       pytest. Pin all versions. All tooling runs inside containers (see 1.5 and
       `.kiro/steering/docker.md`); nothing is installed on the host.
     - Create a small internal shared package for config and structured logging
       that both `api/` and `worker/` import. It must not touch the database.
     - _Requirements: 1.2, 1.4, 1.5, NFR 4_
-  - [ ] 1.3 Set up the `web/` toolchain
+  - [x] 1.3 Set up the `web/` toolchain
     - Vite, React, TypeScript, Tailwind, shadcn/ui, ESLint, Vitest, pnpm with a
       lockfile. Pin versions. Port the design tokens from the Stitch project
       (primary `#0f766e`, Inter, JetBrains Mono, 8px/12px radii) into the Tailwind
       theme. Install and run everything through `docker compose` (no host Node
       or pnpm).
     - _Requirements: 1.3, 1.5_
-  - [ ] 1.5 Set up the Docker Compose development environment
+  - [x] 1.5 Set up the Docker Compose development environment
     - Add `compose.yaml` and `.env.example` at the repo root. Services: `web`,
       `api`, `worker`, `db` (PostgreSQL with a healthcheck and named volume),
       `migrate` (Alembic one-off), and `localstack` (S3, SQS, Secrets Manager).
@@ -40,7 +40,7 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
       commands in `docker.md` run in containers.
     - Terraform is the only tool allowed on the host.
     - _Requirements: 1.2, 1.3, 1.5_
-  - [ ] 1.6 Add the CI workflow
+  - [x] 1.6 Add the CI workflow
     - GitHub Actions with a job per package (lint, type-check, unit test) and a
       separate job slot for the isolation suite and the lint-guard (added in
       tasks 7 and 8). Jobs run the same Dockerfile `dev` targets used locally

@@ -1,0 +1,131 @@
+# Lusiform local development stack. See .kiro/steering/docker.md.
+name: lusiform
+
+x-python-env: &python-env
+  ENVIRONMENT: local
+  AWS_REGION: ${AWS_REGION:-us-east-1}
+  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?set AWS_ACCESS_KEY_ID in .env}
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?set AWS_SECRET_ACCESS_KEY in .env}
+  AWS_ENDPOINT_URL: http://localstack:4566
+  DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:?set POSTGRES_DB in .env}
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:?set POSTGRES_USER in .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: ${POSTGRES_DB:?set POSTGRES_DB in .env}
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  localstack:
+    image: localstack/localstack:4.9
+    environment:
+      SERVICES: s3,sqs,secretsmanager
+    ports:
+      - "127.0.0.1:4566:4566"
+    volumes:
+      - ./docker/localstack/init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fs http://localhost:4566/_localstack/health | grep -q '\"sqs\": \"\\(available\\|running\\)\"'"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  migrate:
+    # Same image and build as api, so `run --rm migrate` works on a fresh clone.
+    image: lusiform-api:dev
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+      target: dev
+      args:
+        BUILD_DNS: ${BUILD_DNS:-}
+    command: ["alembic", "upgrade", "head"]
+    environment: *python-env
+    volumes:
+      - ./api:/app/api
+      - ./common:/app/common
+      - api_venv:/app/api/.venv
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    image: lusiform-api:dev
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+      target: dev
+      args:
+        BUILD_DNS: ${BUILD_DNS:-}
+    environment:
+      <<: *python-env
+      SERVICE_NAME: lusiform-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api:/app/api
+      - ./common:/app/common
+      - api_venv:/app/api/.venv
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      localstack:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://localhost:8000/api/health', timeout=3)"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  worker:
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
+      target: dev
+      args:
+        BUILD_DNS: ${BUILD_DNS:-}
+    environment:
+      <<: *python-env
+      SERVICE_NAME: lusiform-worker
+    volumes:
+      - ./worker:/app/worker
+      - ./common:/app/common
+      - worker_venv:/app/worker/.venv
+    depends_on:
+      db:
+        condition: service_healthy
+      localstack:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./web
+      target: dev
+      args:
+        BUILD_DNS: ${BUILD_DNS:-}
+    # Re-sync dependencies on start in case the node_modules volume is stale.
+    command: ["sh", "-c", "pnpm install --frozen-lockfile --prefer-offline --store-dir /app/node_modules/.pnpm-store && pnpm dev"]
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./web:/app
+      - web_node_modules:/app/node_modules
+
+volumes:
+  db_data:
+  api_venv:
+  worker_venv:
+  web_node_modules:

@@ -1,0 +1,19 @@
+# Root build context (api and worker images). Per-app .dockerignore files cover
+# builds started from inside an app directory.
+.git/
+.kiro/
+docs/
+infra/
+templates/
+tools/
+web/
+**/.venv/
+**/node_modules/
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+**/.mypy_cache/
+**/.ruff_cache/
+.env
+.env.*
+!.env.example

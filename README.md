@@ -55,8 +55,8 @@ lusiform/
   .kiro/       Steering, specs, hooks
 ```
 
-Only `docs/` and `.kiro/` exist today. The other directories are created by the
-`foundation` spec.
+Each package directory has a README describing its role. Product and rule
+documents live in [`docs/`](docs/) and [`.kiro/steering/`](.kiro/steering/).
 
 ## Stack
 
