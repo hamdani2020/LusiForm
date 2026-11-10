@@ -42,7 +42,7 @@ _FREE_TEXT_KEYS = frozenset(
 
 
 def _is_sensitive(key: str) -> bool:
-    lowered = key.lower()
+    lowered = key.lower().replace("-", "_")
     return lowered in _FREE_TEXT_KEYS or any(s in lowered for s in _SENSITIVE_SUBSTRINGS)
 
 

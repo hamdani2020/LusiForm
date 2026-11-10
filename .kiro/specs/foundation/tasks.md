@@ -47,19 +47,19 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
       where practical.
     - _Requirements: 1.6_
 
-- [ ] 2. Build the API skeleton
-  - [ ] 2.1 Create the FastAPI app with `/api` routing and a health endpoint
+- [x] 2. Build the API skeleton
+  - [x] 2.1 Create the FastAPI app with `/api` routing and a health endpoint
     - App factory, `/api` router, `GET /api/health` returning 200 with no auth.
     - Request-id middleware that generates a `request_id` per request.
     - _Requirements: 1.2, 6.2_
-  - [ ] 2.2 Add configuration and structured JSON logging
+  - [x] 2.2 Add configuration and structured JSON logging
     - Typed settings loaded from environment (no secrets in code or committed env
       files). JSON logger writing to stdout.
     - Add a redaction filter that drops known sensitive keys and never logs
       intake free text, secrets, or credentials.
     - Write unit tests for the redaction filter.
     - _Requirements: 6.2, 6.3, NFR 4_
-  - [ ] 2.3 Write a smoke test for the health endpoint
+  - [x] 2.3 Write a smoke test for the health endpoint
     - Assert 200 and that the response needs no auth.
     - _Requirements: 1.2_
 

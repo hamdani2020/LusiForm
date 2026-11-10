@@ -1,19 +1,28 @@
-"""Minimal FastAPI app. Routing, middleware and config land in spec task 2."""
+"""FastAPI app factory. All routes live under `/api`."""
 
 from fastapi import APIRouter, FastAPI
+from lusiform_common import configure_logging
 
-router = APIRouter(prefix="/api")
+from app.config import ApiSettings, get_settings
+from app.middleware import RequestIdMiddleware
+
+# Public router: no auth. Only /api/health (and, later, the auth callback).
+public_router = APIRouter(prefix="/api")
 
 
-@router.get("/health")
+@public_router.get("/health")
 def health() -> dict[str, str]:
     """Liveness probe. No auth."""
     return {"status": "ok"}
 
 
-def create_app() -> FastAPI:
+def create_app(settings: ApiSettings | None = None) -> FastAPI:
+    settings = settings or get_settings()
+    configure_logging(settings.service_name, settings.log_level)
+
     app = FastAPI(title="Lusiform API")
-    app.include_router(router)
+    app.add_middleware(RequestIdMiddleware)
+    app.include_router(public_router)
     return app
 
 
