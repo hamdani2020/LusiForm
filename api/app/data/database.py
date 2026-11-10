@@ -16,6 +16,7 @@ from app.context import RequestContext
 from app.data.identity import Identity, resolve_identity
 from app.data.repositories import (
     AuditEventRepository,
+    CurrentPartnerRepository,
     IntakeDraftRepository,
     OperatorAuditRepository,
     PartnerRepository,
@@ -35,6 +36,7 @@ class TenantRepositories:
         self.projects = ProjectRepository(ctx, session)
         self.intake_drafts = IntakeDraftRepository(ctx, session)
         self.audit_events = AuditEventRepository(ctx, session)
+        self.partner = CurrentPartnerRepository(ctx, session)
 
 
 class OperatorRepositories:

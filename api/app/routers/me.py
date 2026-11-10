@@ -17,6 +17,7 @@ router = APIRouter(prefix="/api", dependencies=[Depends(get_request_context)])
 class MeResponse(BaseModel):
     user_id: uuid.UUID
     partner_id: uuid.UUID
+    partner_name: str
     email: str
     display_name: str | None
     roles: list[Role]
@@ -29,9 +30,11 @@ def me(
 ) -> MeResponse:
     with db.tenant(ctx) as repos:
         user = repos.users.get(ctx.user_id)
+        partner = repos.partner.get()
         return MeResponse(
             user_id=ctx.user_id,
             partner_id=ctx.partner_id,
+            partner_name=partner.name,
             email=user.email,
             display_name=user.display_name,
             roles=sorted(ctx.roles),

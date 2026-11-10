@@ -10,7 +10,9 @@ from typing import Any
 
 from sqlalchemy import delete, select
 from sqlalchemy.engine import CursorResult
+from sqlalchemy.orm import Session
 
+from app.context import RequestContext
 from app.data.audit_payload import sanitize
 from app.data.base import IdRepository, MutableRepository, OperatorRepository, TenantRepository
 from app.data.models import (
@@ -144,6 +146,27 @@ class AuditEventRepository(IdRepository[AuditEvent]):
             before_json=sanitize(before),
             after_json=sanitize(after),
         )
+
+
+class CurrentPartnerRepository:
+    """Read-only view of the caller's *own* partner row (e.g. its name for the app shell).
+
+    `partners` is the tenant root and has no `partner_id` column, so this is not a
+    `TenantRepository`; the scoping is `partners.id = ctx.partner_id`, fixed by the context.
+    There is no way to ask for another partner.
+    """
+
+    def __init__(self, ctx: RequestContext, session: Session) -> None:
+        self._ctx = ctx
+        self._session = session
+
+    def get(self) -> Partner:
+        row = self._session.execute(
+            select(Partner).where(Partner.id == self._ctx.partner_id)
+        ).scalar_one_or_none()
+        if row is None:
+            raise NotFound
+        return row
 
 
 # --- operator repositories (non-tenant tables; platform_operator only) ---

@@ -208,22 +208,27 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
     - Wire the guard into CI.
     - _Requirements: 4.5, 1.6_
 
-- [ ] 9. Build the web authentication shell
-  - [ ] 9.1 Implement the Cognito hosted-login flow in `web/`
+- [x] 9. Build the web authentication shell
+  - [x] 9.1 Implement the Cognito hosted-login flow in `web/`
     - Redirect unauthenticated users to the hosted login, handle the callback
       code exchange, keep tokens in memory with refresh through the Cognito flow,
       and store no long-lived secret in the browser.
     - Attach `Authorization: Bearer` to API calls.
     - _Requirements: 2.1, 2.4, 2.6_
-  - [ ] 9.2 Build the authenticated app shell
+  - [x] 9.2 Build the authenticated app shell
     - Layout with the "Lusiform" brand, the Projects navigation, and the signed-in
       user's name and role, matching the Sign In and Projects shell designs in the
       Stitch project. There is no workspace picker: a user belongs to one partner
       (see the `agent-and-admin` spec).
+    - Stitch references used: Sign In `5e604a130e1b48d5aa941a4e5e2ae5b5`, Public
+      Landing Page `45e2ea5912734edea4fd268a5abc551f` (signed-out page), and Projects
+      (Empty State) `fb84e75b82d242fd8ab028c8f0c08700` (shell). The other "Projects"
+      screens (`361046e0…`, `03e0795b…`) are pre-PRD enterprise mockups (EKS,
+      compliance nav, invented KPIs) and are not references.
     - Show the user from `GET /api/me`. Hide admin navigation unless the user has
       an admin role.
     - _Requirements: 1.3, 2.3_
-  - [ ] 9.3 Write web tests
+  - [x] 9.3 Write web tests
     - An unauthenticated visit redirects to the hosted login; an authenticated
       state renders the shell with the user's name and role; admin navigation is
       hidden for consultants.

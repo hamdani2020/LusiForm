@@ -288,6 +288,7 @@ def test_me_returns_identity_from_the_database(client: TestClient, migrated_engi
     assert body["partner_id"] == str(acct.partner_id)
     assert body["roles"] == ["consultant", "partner_admin"]
     assert body["display_name"] == "Test User"
+    assert body["partner_name"].startswith("p-")
     assert r.headers["X-Request-ID"]
 
 

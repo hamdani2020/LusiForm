@@ -15,6 +15,10 @@ export default defineConfig({
     port: 5173,
     // Bind mounts on Docker Desktop do not always deliver file events.
     watch: { usePolling: true },
+    // The browser calls same-origin /api; in Compose the API service is `api`.
+    proxy: {
+      "/api": { target: process.env.API_PROXY_TARGET ?? "http://api:8000", changeOrigin: true },
+    },
   },
   test: {
     globals: true,

@@ -122,6 +122,11 @@ services:
         BUILD_DNS: ${BUILD_DNS:-}
     # Re-sync dependencies on start in case the node_modules volume is stale.
     command: ["sh", "-c", "pnpm install --frozen-lockfile --prefer-offline --store-dir /app/node_modules/.pnpm-store && pnpm dev"]
+    environment:
+      # Cognito hosted login (public app client, PKCE). Not secrets. Unset shows a
+      # "sign-in is not configured" screen instead of redirecting.
+      VITE_COGNITO_DOMAIN: ${VITE_COGNITO_DOMAIN:-}
+      VITE_COGNITO_CLIENT_ID: ${VITE_COGNITO_CLIENT_ID:-}
     ports:
       - "5173:5173"
     volumes:

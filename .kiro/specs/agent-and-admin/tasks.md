@@ -15,6 +15,7 @@ Claude, Aurora, EKS, and billing absent, apart from the copy fixes below.
 | Screen | Screen ID |
 | --- | --- |
 | Sign In | `5e604a130e1b48d5aa941a4e5e2ae5b5` |
+| Lusiform - Public Landing Page (signed out; "Sign in" goes to the hosted login) | `45e2ea5912734edea4fd268a5abc551f` |
 | Architecture Stage - Assistant Open | `6f83fe3d3e4c407c8cec865e4146ec3e` |
 | Sandbox Stage - Assistant Plan Request | `3675201a3bba4001999e088848c05033` |
 | Intake Stage - Assistant Unavailable | `e0a3657a4e8d44acb3480102a8a1c18b` |

@@ -128,6 +128,7 @@ def test_self_endpoints_return_only_the_callers_own_identity(world: World, role:
         assert r.status_code == 200, e
         body = r.json()
         assert body["partner_id"] == str(world.b.partner_id)
+        assert body["partner_name"] == world.b.partner_name
         assert body["user_id"] == str(b_acct.ctx.user_id)
         assert not contains_any(body, a_values), f"{e} leaked partner A data"
 
@@ -299,3 +300,13 @@ def test_b_writes_are_stamped_with_bs_partner_even_when_a_ids_are_in_play(world:
 def test_ids_are_unique_between_the_two_partners(world: World) -> None:
     assert not set(world.a.ids.values()) & set(world.b.ids.values())
     assert world.a.partner_id != world.b.partner_id
+
+
+@pytest.mark.parametrize("role", list(Role))
+def test_current_partner_is_always_the_callers_own(world: World, role: Role) -> None:
+    with world.db.tenant(world.b[role].ctx) as repos:
+        partner = repos.partner.get()
+    assert partner.id == world.b.partner_id
+    assert partner.name == world.b.partner_name
+    # The repository takes no id, so there is no way to ask for partner A.
+    assert not [n for n in vars(type(repos.partner)) if not n.startswith("_") and n != "get"]

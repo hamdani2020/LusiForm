@@ -39,6 +39,7 @@ class Party:
 
     name: str
     partner_id: uuid.UUID
+    partner_name: str
     accounts: dict[Role, Account]
     ids: dict[str, str] = field(default_factory=dict)  # seeded resource ids, as strings
 
@@ -105,7 +106,11 @@ def _build_party(engine: Engine, db: Database, name: str) -> Party:
         "sandbox_id": str(seed.sandbox_id),
         "audit_id": str(event.id),
     }
-    return Party(name, seed.partner_id, accounts, ids)
+    with Session(engine) as s:
+        partner_name = s.execute(
+            text("SELECT name FROM partners WHERE id = :p"), {"p": seed.partner_id}
+        ).scalar_one()
+    return Party(name, seed.partner_id, partner_name, accounts, ids)
 
 
 def build_world(engine: Engine) -> World:

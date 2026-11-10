@@ -3,32 +3,39 @@
 @import "@fontsource-variable/inter";
 @import "@fontsource-variable/jetbrains-mono";
 
-/* Design tokens ported from the Stitch project:
-   primary #0f766e, Inter, JetBrains Mono, 8px / 12px radii. */
+/* Design tokens from the Stitch project (Sign In, Public Landing Page, Projects):
+   navy #14213D, teal #0F766E, mint #CCFBF1, slate background #F8FAFC,
+   Inter, JetBrains Mono, 8px / 12px radii. */
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
   --radius: 0.75rem; /* 12px */
 
-  --background: #ffffff;
-  --foreground: #0f172a;
+  --background: #f8fafc;
+  --foreground: #14213d;
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #14213d;
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  --popover-foreground: #14213d;
   --primary: #0f766e;
+  --primary-hover: #0d655e;
   --primary-foreground: #ffffff;
   --secondary: #f1f5f9;
-  --secondary-foreground: #0f172a;
+  --secondary-foreground: #14213d;
   --muted: #f1f5f9;
   --muted-foreground: #64748b;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172a;
-  --destructive: #dc2626;
+  --accent: #f0fdfa;
+  --accent-foreground: #0f766e;
+  --destructive: #b91c1c;
   --border: #e2e8f0;
   --input: #e2e8f0;
   --ring: #0f766e;
+
+  --navy: #14213d;
+  --mint: #ccfbf1;
+  --success: #15803d;
+  --warning: #b45309;
 }
 
 @theme inline {
@@ -47,6 +54,7 @@
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -58,6 +66,10 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-navy: var(--navy);
+  --color-mint: var(--mint);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
 }
 
 @layer base {
