@@ -262,16 +262,16 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
       migrations stay data-free.
     - _Requirements: 5.2_
 
-- [ ] 12. Final verification
-  - [ ] 12.1 Run the full suite and the guards
+- [x] 12. Final verification
+  - [x] 12.1 Run the full suite and the guards
     - Run lint, type checks, unit tests, migration round trip, the isolation
       suite, and the lint-guard across all packages. All must pass.
     - _Requirements: 1.6, 4.5, 4.6, NFR 3_
-  - [ ] 12.2 Update steering with real commands
+  - [x] 12.2 Update steering with real commands
     - Replace the placeholder in `.kiro/steering/tech.md` with the exact build,
       test, lint, and migration commands that now exist.
     - _Requirements: 1.5_
-  - [ ] 12.3 Confirm the acceptance criteria
+  - [x] 12.3 Confirm the acceptance criteria
     - Walk requirements 1–6 and the non-functional requirements and note which
       test or artifact proves each. Flag anything not covered.
     - _Requirements: all_

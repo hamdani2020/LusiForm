@@ -6,6 +6,7 @@ from functools import lru_cache
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from lusiform_common import bind_log_context
 
@@ -38,7 +39,7 @@ def _unauthorized() -> HTTPException:
     )
 
 
-def get_request_context(
+async def get_request_context(
     request: Request,
     credentials: Annotated[HTTPAuthorizationCredentials | None, Depends(_bearer)],
     verifier: Annotated[JwtVerifier, Depends(get_verifier)],
@@ -48,17 +49,23 @@ def get_request_context(
 
     Roles and partner come from the database for the verified `sub`, never from any
     claim or header the client controls (Requirement 5.3).
+
+    Async on purpose: the partner and user ids must be bound to the log context of the
+    request itself, so the access log and the handler's own logs carry them
+    (Requirement 6.2). A sync dependency runs in a worker thread, and context it binds
+    there is lost when it returns. The blocking parts (token check, which may fetch the
+    signing keys, and the database lookup) still run in the threadpool.
     """
     if credentials is None:
         raise _unauthorized()
     try:
-        claims = verifier.verify(credentials.credentials)
+        claims = await run_in_threadpool(verifier.verify, credentials.credentials)
     except TokenError:
         raise _unauthorized() from None
     except AuthUnavailable:
         raise HTTPException(status_code=503, detail="Authentication unavailable") from None
 
-    identity = db.resolve_identity(claims.sub)
+    identity = await run_in_threadpool(db.resolve_identity, claims.sub)
     if identity is None or not identity.is_active:
         # No record, deactivated/invited user, or suspended partner: same answer.
         raise NotAuthorized

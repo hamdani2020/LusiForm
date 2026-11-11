@@ -23,7 +23,7 @@ from jwt.exceptions import PyJWKClientConnectionError
 from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
-from app.config import ApiSettings
+from app.config import ApiSettings, get_settings
 from app.context import RequestContext
 from app.data.database import Database
 from app.data.models import Partner, User, UserRole
@@ -292,6 +292,44 @@ def test_me_returns_identity_from_the_database(client: TestClient, migrated_engi
     assert r.headers["X-Request-ID"]
 
 
+def test_authenticated_request_logs_carry_partner_and_user_ids(
+    client: TestClient, migrated_engine: Engine, capsys: pytest.CaptureFixture[str]
+) -> None:
+    """Requirement 6.2: both the access log and a (sync) handler's own log line carry the
+    caller's partner and user ids, and the request id."""
+    from lusiform_common import get_logger
+
+    with Session(migrated_engine) as s:
+        acct = _account(s, [Role.CONSULTANT])
+        s.commit()
+
+    app = client.app
+    assert isinstance(app, FastAPI)
+
+    @app.get("/api/probe-log")
+    def probe_log(ctx: RequestContext = Depends(get_request_context)) -> dict[str, str]:  # noqa: B008
+        get_logger("probe").info("handler log")  # runs in a worker thread
+        return {}
+
+    capsys.readouterr()  # drop setup output
+    r = client.get("/api/probe-log", headers=_bearer(make_token(acct.sub)))
+    assert r.status_code == 200
+
+    lines = [json.loads(x) for x in capsys.readouterr().out.splitlines() if x.startswith("{")]
+    handler = next(x for x in lines if x["message"] == "handler log")
+    access = next(x for x in lines if x["message"] == "request" and x["path"] == "/api/probe-log")
+    for entry in (handler, access):
+        assert entry["partner_id"] == str(acct.partner_id), entry
+        assert entry["user_id"] == str(acct.user_id), entry
+        assert entry["request_id"] == r.headers["X-Request-ID"], entry
+
+    # And the next, anonymous request does not inherit them.
+    client.get("/api/health")
+    after = [json.loads(x) for x in capsys.readouterr().out.splitlines() if x.startswith("{")]
+    health = next(x for x in after if x["message"] == "request")
+    assert "user_id" not in health and "partner_id" not in health
+
+
 @pytest.mark.parametrize(
     ("user_status", "partner_status"),
     [("deactivated", "active"), ("invited", "active"), ("active", "suspended")],
@@ -376,8 +414,16 @@ def _uses(dependant: Any, call: Any) -> bool:
     return any(d.call is call or _uses(d, call) for d in dependant.dependencies)
 
 
-def test_unconfigured_auth_fails_closed_with_503() -> None:
+def test_unconfigured_auth_fails_closed_with_503(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Hermetic: a developer's .env may point the API at a real user pool.
+    for name in ("COGNITO_REGION", "COGNITO_USER_POOL_ID", "COGNITO_APP_CLIENT_ID"):
+        monkeypatch.delenv(name, raising=False)
+    get_settings.cache_clear()
     get_verifier.cache_clear()
-    app = create_app(ApiSettings())
-    r = TestClient(app).get("/api/me", headers=_bearer(make_token()))
-    assert r.status_code == 503
+    try:
+        app = create_app(ApiSettings())
+        r = TestClient(app).get("/api/me", headers=_bearer(make_token()))
+        assert r.status_code == 503
+    finally:
+        get_settings.cache_clear()
+        get_verifier.cache_clear()
