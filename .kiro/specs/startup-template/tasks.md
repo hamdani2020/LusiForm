@@ -102,14 +102,14 @@ against any AWS account in this spec; stop at `fmt`, `validate`, `tflint`, and
       implement the HTTP default with an optional `certificate_arn` input.
     - _Requirements: 1.5, 4.5_
 
-- [ ] 8. Write the root project templates
-  - [ ] 8.1 Create the root templates
+- [x] 8. Write the root project templates
+  - [x] 8.1 Create the root templates
     - `main.tf.tmpl`, `variables.tf.tmpl`, `outputs.tf.tmpl`,
       `terraform.tfvars.example.tmpl`, and `README.md.tmpl`. The root declares
       Terraform `>= 1.10.0`, the pinned provider, and the S3 backend with
       `use_lockfile = true` and no bucket, key, or account values.
     - _Requirements: 3.2, 3.4_
-  - [ ] 8.2 Add a reference render helper for tests
+  - [x] 8.2 Add a reference render helper for tests
     - A minimal, test-only helper that fills the root templates from a parameter
       set so module validation can run before the real renderer exists. The real
       renderer is built in the generation spec and must reproduce its output.

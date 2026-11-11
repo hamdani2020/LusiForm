@@ -22,7 +22,7 @@ templates/
       sandbox-policy.json     cross-account policy derived from the inventory
       modules/                static HCL: network, compute, database, monitoring, iam
         <module>/             main.tf variables.tf outputs.tf versions.tf
-      root/                   templates for the rendered root project (*.tmpl)
+      root/                   Jinja2 templates for the rendered root project (*.tmpl)
       tests/<module>/         Terraform tests (*.tftest.hcl, mocked AWS provider)
       tests/.terraform.lock.hcl  provider lock used when the module tests run
       fixtures/               params/, golden/, insecure/ used by tests
@@ -31,8 +31,8 @@ templates/
   tests/                      pytest suite for the template
 ```
 
-`inventory.json`, `sandbox-policy.json`, and the root templates are added by later tasks of
-the `startup-template` spec. `1.0.0` is a draft until then.
+`inventory.json` and `sandbox-policy.json` are added by later tasks of the
+`startup-template` spec. `1.0.0` is a draft until then.
 
 Module tests live in `startup/<version>/tests/`, outside `modules/`, so test fixtures
 (fake ARNs and account IDs) can never be copied into a rendered project. The renderer
@@ -73,6 +73,41 @@ resource.
   time-dependent data sources.
 - Never run `terraform apply` from this directory. Validation stops at `fmt`,
   `validate`, `tflint`, and `checkov`.
+
+## Root project templates
+
+`root/` holds five Jinja2 templates: `main.tf`, `variables.tf`, `outputs.tf`,
+`terraform.tfvars.example`, and `README.md`. The renderer fills them and copies
+`modules/*/*.tf` beside them, giving a project with `main.tf` at the top and the five
+modules under `modules/`. Rendering is a pure function: the same inputs give the same
+bytes.
+
+The root declares Terraform `>= 1.10.0`, the pinned AWS provider, and an S3 backend with
+`use_lockfile = true` and `encrypt = true`. The bucket, key, and region are supplied at
+init with `-backend-config`, so no account value is in the files. The provider tags every
+resource with `lusiform-managed`, `lusiform-project`, and `lusiform-template-version`
+through `default_tags`. The project ships no `.terraform.lock.hcl`: the worker creates it at
+the first `terraform init` against its provider mirror, so it holds the right platform
+hashes.
+
+**Renderer contract.** The templates use only plain `{{ dotted.name }}` expressions: no
+block tags, comments, or filters. The Jinja2 environment must use `StrictUndefined`,
+autoescape off, and `keep_trailing_newline=True` (Jinja otherwise drops the final newline,
+which fails `terraform fmt -check`). The context is:
+
+| Name | Value |
+| --- | --- |
+| `template_version` | `1.0.0`, from `template.json` |
+| `terraform_constraint` | `>= 1.10.0`, from `template.json` |
+| `aws_provider_constraint` | `~> 5.47`, from `template.json` |
+| `region` | the project's region |
+| `name_prefix` | derived from the project id (3 to 24 characters, lowercase letters, digits, hyphens); never typed text |
+| `project_name`, `customer_name` | display text, already escaped for Markdown; used in `README.md` only |
+| `modules` | the parameters nested by module, for example `modules.compute.min_tasks` |
+
+`tests/reference_render.py` is a test-only implementation of this contract. The real
+renderer in the generation-pipeline spec must match its output byte for byte, and its
+golden tests replace the helper.
 
 ## Running the tests
 

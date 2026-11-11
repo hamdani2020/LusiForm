@@ -70,7 +70,7 @@ def _only_error(schema: dict[str, Any], params: dict[str, Any]) -> str:
     return errors[0].message
 
 
-# --- 2.1 the schema ----------------------------------------------------------------------
+# --- 2.1 the schema ----------------------------------------------------------------------------
 
 
 def test_schema_has_exactly_the_eight_parameters(schema: dict[str, Any]) -> None:
@@ -129,7 +129,7 @@ def test_log_retention_values_are_valid_cloudwatch_values(schema: dict[str, Any]
     assert min(values) == 7 and max(values) == 365
 
 
-# --- 2.2 / 2.3 the validator ---------------------------------------------------------------
+# --- 2.2 / 2.3 the validator -------------------------------------------------------------------
 
 
 def test_defaults_are_valid(schema: dict[str, Any]) -> None:
@@ -292,7 +292,7 @@ def test_malformed_schema_is_refused(tmp_path: Path, schema_path: Path) -> None:
         load_schema(target)
 
 
-# --- 2.3 UI and renderer share one definition -------------------------------------------------
+# --- 2.3 UI and renderer share one definition --------------------------------------------------
 
 
 def test_schema_matches_architecture_stage_values(schema: dict[str, Any]) -> None:

@@ -1,0 +1,23 @@
+# Example variable values for this project. Copy to terraform.tfvars and edit.
+# The first group is what this version was generated with. The second group must be
+# set for your environment. Do not put credentials in this file.
+
+# Values this version was generated with
+region                = "{{ region }}"
+name_prefix           = "{{ name_prefix }}"
+az_count              = {{ modules.network.az_count }}
+task_size             = "{{ modules.compute.task_size }}"
+min_tasks             = {{ modules.compute.min_tasks }}
+max_tasks             = {{ modules.compute.max_tasks }}
+instance_class        = "{{ modules.database.instance_class }}"
+storage_gb            = {{ modules.database.storage_gb }}
+backup_retention_days = {{ modules.database.backup_retention_days }}
+log_retention_days    = {{ modules.monitoring.log_retention_days }}
+
+# Set for your environment
+container_image     = "registry.example.com/your-team/your-app:1.0.0"
+container_port      = 8080
+health_check_path   = "/"
+certificate_arn     = ""
+deletion_protection = true
+skip_final_snapshot = false

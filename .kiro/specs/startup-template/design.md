@@ -185,8 +185,9 @@ requires it") and the UI's 1 to 2 range. Flagged for expert review.
 
 ## Rendered project
 
-The renderer (generation spec) fills `root/*.tmpl` and writes parameter values
-into `variables.tf` defaults. The rendered root:
+The renderer (generation spec) fills `root/*.tmpl` (Jinja2, plain `{{ dotted.name }}`
+expressions only; the environment and context contract are in `templates/README.md`) and
+writes parameter values into `variables.tf` defaults. The rendered root:
 
 - declares `terraform { required_version = ">= 1.10.0" }` and the pinned provider;
 - configures `backend "s3" { use_lockfile = true }` with **no** bucket, key, or
@@ -295,3 +296,18 @@ blocks. The pilot parameter sets must show zero high findings.
     rendering deterministic. Some accounts do not have `a` and `b` in every region.
 14. **Egress is narrow.** Tasks may reach HTTPS on the internet (through NAT) and PostgreSQL
     in the VPC only. A workload that needs another outbound port needs a new template version.
+15. **No provider lock file in the rendered project.** The root templates ship no
+    `.terraform.lock.hcl`. A lock file committed from one machine would carry hashes for
+    one platform only, and `terraform init` against the worker's filesystem provider mirror
+    would fail on another CPU architecture. The worker creates the lock file at its first
+    init. The sandbox spec's plan hash covers "the provider lock file"; confirm it hashes the
+    one the worker generated, and decide whether the packaged zip should include it.
+16. **Deploy-time inputs beyond the eight parameters.** The root also exposes
+    `container_image` (required), `container_port`, `health_check_path`, `certificate_arn`,
+    `deletion_protection`, and `skip_final_snapshot`. They are not template parameters, so
+    they are not in `schema.json` or the Architecture stage, and changing them does not
+    create a new project version. Confirm that is the intended split.
+17. **Tags come from the provider.** Resources get `lusiform-managed` and the project tags
+    through the provider's `default_tags`, not module inputs, so the sandbox policy's tag
+    condition depends on Terraform sending them at create time. Verify at the first real
+    apply, together with question 12.

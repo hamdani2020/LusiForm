@@ -130,7 +130,7 @@ def test_module_tests_use_mocked_providers_only(version_dir: Path) -> None:
         assert 'mock_provider "aws"' in test_file.read_text(), f"{test_file.name} is not mocked"
 
 
-# --- IAM policy lint (task 5.2) --------------------------------------------
+# --- IAM policy lint (task 5.2) ----------------------------------------------------------------
 
 
 def test_iam_has_no_wildcard_action_or_resource_in_source(version_dir: Path) -> None:
@@ -162,7 +162,7 @@ def test_every_iam_policy_is_covered_by_the_tftest_lint(version_dir: Path) -> No
         assert f"aws_iam_policy.{name}," in lint_block, f"aws_iam_policy.{name} is not linted"
 
 
-# --- Secrets ---------------------------------------------------------------
+# --- Secrets -----------------------------------------------------------------------------------
 
 
 def test_database_never_sets_a_password(version_dir: Path) -> None:
