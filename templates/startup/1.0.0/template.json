@@ -1,0 +1,17 @@
+{
+  "template": "startup",
+  "version": "1.0.0",
+  "status": "draft",
+  "terraform": ">= 1.10.0",
+  "aws_provider": "~> 5.47",
+  "tools": {
+    "terraform": "1.10.5",
+    "tflint": "0.54.0",
+    "checkov": "3.4.3"
+  },
+  "review": {
+    "reviewed_by": null,
+    "reviewed_at": null,
+    "notes_ref": null
+  }
+}

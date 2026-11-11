@@ -7,20 +7,20 @@ but does not need the API or web to be running. Never run `terraform apply`
 against any AWS account in this spec; stop at `fmt`, `validate`, `tflint`, and
 `checkov`.
 
-- [ ] 1. Set up the template package and tooling
-  - [ ] 1.1 Create the version directory and metadata
+- [x] 1. Set up the template package and tooling
+  - [x] 1.1 Create the version directory and metadata
     - Create `templates/startup/1.0.0/` with `template.json` (status `draft`,
       review fields null), the `modules/`, `root/`, and `fixtures/` folders, and
       a `templates/README.md` explaining the layout and versioning rules.
     - _Requirements: 5.1, 5.3, 5.5_
-  - [ ] 1.2 Pin and document the tool versions
+  - [x] 1.2 Pin and document the tool versions
     - Pin Terraform (`>= 1.10`), the AWS provider (`~> 5.47`), tflint, and
       Checkov, and record them in `template.json`. These must match the worker
       image pins.
     - Add a test-runner script that installs or locates these exact versions
       for local and CI use.
     - _Requirements: 3.4, NFR 3_
-  - [ ] 1.3 Add a CI job for the template
+  - [x] 1.3 Add a CI job for the template
     - Run schema tests, module validation, the insecure-fixture check, the
       credential scan, determinism, inventory, immutability, and review-gate
       tests. This job must pass for the pipeline to pass.

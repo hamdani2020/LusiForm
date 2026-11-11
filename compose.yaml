@@ -115,6 +115,8 @@ services:
     volumes:
       - ./worker:/app/worker
       - ./common:/app/common
+      # Template package and its tests (startup-template spec); dev only.
+      - ./templates:/app/templates
       - worker_venv:/app/worker/.venv
     depends_on:
       db:

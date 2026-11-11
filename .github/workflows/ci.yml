@@ -146,6 +146,27 @@ jobs:
       - name: Guard tests (flags a deliberate violation, codebase clean)
         run: docker compose run --rm --no-deps api uv run --frozen pytest tests/test_tenant_guard.py
 
+  # Startup template (templates/, startup-template spec): the whole template suite runs in
+  # the worker image, which carries the pinned Terraform, tflint, and Checkov. As tasks land
+  # this covers schema, module validation (fmt, validate, tflint, checkov), the insecure
+  # fixture, the credential scan, determinism, inventory, immutability, and the review gate.
+  # Never plans or applies.
+  templates:
+    name: templates (schema, validation, determinism)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - name: Create .env from .env.example
+        run: cp .env.example .env
+      - name: Build worker dev image
+        run: docker compose build worker
+      # pytest exits non-zero when it collects nothing, so an empty suite cannot pass.
+      - name: Template suite
+        run: templates/scripts/run-tests.sh -q
+
   # Platform Terraform (infra/): format, validate both environments without a backend or
   # AWS credentials, and run the module tests against a mocked AWS provider. Uses the same
   # pinned Terraform image as the worker; never plans or applies.
