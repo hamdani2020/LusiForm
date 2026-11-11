@@ -27,12 +27,12 @@ mock_provider "aws" {
 }
 
 variables {
-  name_prefix            = "demo-app"
+  name_prefix            = "lf-demo"
   log_retention_days     = 30
-  alb_arn_suffix         = "app/demo-app-alb/0123456789abcdef"
-  ecs_cluster_name       = "demo-app-cluster"
-  ecs_service_name       = "demo-app-app"
-  db_instance_identifier = "demo-app-db"
+  alb_arn_suffix         = "app/lf-demo-alb/0123456789abcdef"
+  ecs_cluster_name       = "lf-demo-cluster"
+  ecs_service_name       = "lf-demo-app"
+  db_instance_identifier = "lf-demo-db"
   db_storage_gb          = 20
 }
 
@@ -41,7 +41,7 @@ run "log_groups_are_encrypted_named_and_retained" {
   command = apply
 
   assert {
-    condition     = aws_cloudwatch_log_group.ecs.name == "/ecs/demo-app" && aws_cloudwatch_log_group.flow_logs.name == "/vpc/demo-app-flow-logs"
+    condition     = aws_cloudwatch_log_group.ecs.name == "/ecs/lf-demo" && aws_cloudwatch_log_group.flow_logs.name == "/vpc/lf-demo-flow-logs"
     error_message = "log group names must be derived from the name prefix"
   }
 
@@ -100,15 +100,15 @@ run "key_rotates_and_policy_is_scoped" {
     condition = (
       jsondecode(aws_kms_key.logs.policy).Statement[1].Principal.Service == "logs.us-east-1.amazonaws.com" &&
       jsondecode(aws_kms_key.logs.policy).Statement[1].Condition.ArnEquals["kms:EncryptionContext:aws:logs:arn"] == [
-        "arn:aws:logs:us-east-1:000000000000:log-group:/ecs/demo-app",
-        "arn:aws:logs:us-east-1:000000000000:log-group:/vpc/demo-app-flow-logs",
+        "arn:aws:logs:us-east-1:000000000000:log-group:/ecs/lf-demo",
+        "arn:aws:logs:us-east-1:000000000000:log-group:/vpc/lf-demo-flow-logs",
       ]
     )
     error_message = "CloudWatch Logs may use the key only for this project's two log groups"
   }
 
   assert {
-    condition     = aws_kms_alias.logs.name == "alias/demo-app-logs"
+    condition     = aws_kms_alias.logs.name == "alias/lf-demo-logs"
     error_message = "the key alias must be derived from the name prefix"
   }
 }
@@ -120,7 +120,7 @@ run "four_alarms_watch_the_right_metrics" {
     condition = (
       aws_cloudwatch_metric_alarm.alb_5xx.namespace == "AWS/ApplicationELB" &&
       aws_cloudwatch_metric_alarm.alb_5xx.metric_name == "HTTPCode_ELB_5XX_Count" &&
-      aws_cloudwatch_metric_alarm.alb_5xx.dimensions.LoadBalancer == "app/demo-app-alb/0123456789abcdef"
+      aws_cloudwatch_metric_alarm.alb_5xx.dimensions.LoadBalancer == "app/lf-demo-alb/0123456789abcdef"
     )
     error_message = "the 5xx alarm must watch the load balancer"
   }
@@ -129,8 +129,8 @@ run "four_alarms_watch_the_right_metrics" {
     condition = (
       aws_cloudwatch_metric_alarm.ecs_cpu.namespace == "AWS/ECS" &&
       aws_cloudwatch_metric_alarm.ecs_cpu.metric_name == "CPUUtilization" &&
-      aws_cloudwatch_metric_alarm.ecs_cpu.dimensions.ClusterName == "demo-app-cluster" &&
-      aws_cloudwatch_metric_alarm.ecs_cpu.dimensions.ServiceName == "demo-app-app"
+      aws_cloudwatch_metric_alarm.ecs_cpu.dimensions.ClusterName == "lf-demo-cluster" &&
+      aws_cloudwatch_metric_alarm.ecs_cpu.dimensions.ServiceName == "lf-demo-app"
     )
     error_message = "the ECS CPU alarm must watch the service"
   }
@@ -139,7 +139,7 @@ run "four_alarms_watch_the_right_metrics" {
     condition = (
       aws_cloudwatch_metric_alarm.rds_cpu.namespace == "AWS/RDS" &&
       aws_cloudwatch_metric_alarm.rds_cpu.metric_name == "CPUUtilization" &&
-      aws_cloudwatch_metric_alarm.rds_cpu.dimensions.DBInstanceIdentifier == "demo-app-db"
+      aws_cloudwatch_metric_alarm.rds_cpu.dimensions.DBInstanceIdentifier == "lf-demo-db"
     )
     error_message = "the RDS CPU alarm must watch the database"
   }
@@ -148,7 +148,7 @@ run "four_alarms_watch_the_right_metrics" {
     condition = (
       aws_cloudwatch_metric_alarm.rds_free_storage.metric_name == "FreeStorageSpace" &&
       aws_cloudwatch_metric_alarm.rds_free_storage.comparison_operator == "LessThanThreshold" &&
-      aws_cloudwatch_metric_alarm.rds_free_storage.dimensions.DBInstanceIdentifier == "demo-app-db"
+      aws_cloudwatch_metric_alarm.rds_free_storage.dimensions.DBInstanceIdentifier == "lf-demo-db"
     )
     error_message = "the free storage alarm must fire when space drops below the threshold"
   }
@@ -235,4 +235,32 @@ run "rejects_storage_outside_the_schema_range" {
   }
 
   expect_failures = [var.db_storage_gb]
+}
+
+run "rejects_a_name_prefix_without_the_lf_prefix" {
+  command = plan
+
+  variables {
+    name_prefix = "demo-app"
+  }
+
+  expect_failures = [var.name_prefix]
+}
+
+run "rejects_a_name_prefix_longer_than_24_characters" {
+  command = plan
+
+  variables {
+    name_prefix = "lf-aaaaaaaaaaaaaaaaaaaaaa"
+  }
+
+  expect_failures = [var.name_prefix]
+}
+
+run "accepts_a_24_character_name_prefix" {
+  command = plan
+
+  variables {
+    name_prefix = "lf-aaaaaaaaaaaaaaaaaaaaa"
+  }
 }

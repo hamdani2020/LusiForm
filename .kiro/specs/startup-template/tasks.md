@@ -115,17 +115,17 @@ against any AWS account in this spec; stop at `fmt`, `validate`, `tflint`, and
       renderer is built in the generation spec and must reproduce its output.
     - _Requirements: 3.1, 3.2_
 
-- [ ] 9. Create the resource inventory and sandbox policy
-  - [ ] 9.1 Write `inventory.json`
+- [x] 9. Create the resource inventory and sandbox policy
+  - [x] 9.1 Write `inventory.json`
     - List every resource type per module with its graph node type and pricing
       hint, as in `design.md`.
     - _Requirements: 1.1, 5.4_
-  - [ ] 9.2 Generate `sandbox-policy.json`
+  - [x] 9.2 Generate `sandbox-policy.json`
     - A script that derives the least-privilege cross-account policy from the
       inventory, scoped by resource patterns and the `lusiform-managed` tag where
       supported.
     - _Requirements: 5.4_
-  - [ ] 9.3 Write inventory and policy tests
+  - [x] 9.3 Write inventory and policy tests
     - Every resource type in the modules appears in the inventory and vice versa;
       the policy covers exactly that set and grants nothing else; no wildcard
       action.

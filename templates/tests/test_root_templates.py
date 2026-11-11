@@ -76,7 +76,7 @@ def _rendered_text(files: dict[str, bytes], name: str) -> str:
     return files[name].decode("utf-8")
 
 
-# --- 8.1 the templates -------------------------------------------------------------------------
+# --- 8.1 the templates -------------------------------------------------------------------
 
 
 def test_exactly_the_five_root_templates_exist(version_dir: Path) -> None:
@@ -141,7 +141,7 @@ def test_trailing_newline_is_kept(version_dir: Path) -> None:
     assert environment().from_string(text).render().endswith("\n")
 
 
-# --- 8.1 what the rendered root contains -------------------------------------------------------
+# --- 8.1 what the rendered root contains -------------------------------------------------
 
 
 def test_root_declares_terraform_and_provider_constraints(version_dir: Path) -> None:
@@ -244,7 +244,7 @@ def test_outputs_never_expose_a_secret_value(version_dir: Path) -> None:
     assert "database_secret_arn" in outputs  # the ARN only
 
 
-# --- 8.2 the render helper ---------------------------------------------------------------------
+# --- 8.2 the render helper ---------------------------------------------------------------
 
 
 def test_project_layout(version_dir: Path) -> None:
@@ -302,7 +302,7 @@ def test_no_certification_or_sla_claims(version_dir: Path) -> None:
             assert not pattern.search(content.decode("utf-8")), path
 
 
-# --- Free text is data (requirement 3.5) -------------------------------------------------------
+# --- Free text is data (requirement 3.5) -------------------------------------------------
 
 
 HOSTILE = 'Evil"; ${var.x} $(rm -rf /) {{ 7*7 }} {% if 1 %} [x](http://evil) <b>x</b> `id`'
@@ -334,7 +334,7 @@ def test_names_do_not_change_any_terraform_file(version_dir: Path) -> None:
     }
 
 
-# --- 8.2 the rendered project passes Terraform -------------------------------------------------
+# --- 8.2 the rendered project passes Terraform -------------------------------------------
 
 
 @pytest.fixture(scope="module")

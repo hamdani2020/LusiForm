@@ -3,8 +3,8 @@ variable "name_prefix" {
   type        = string
 
   validation {
-    condition     = can(regex("^[a-z][a-z0-9-]{1,22}[a-z0-9]$", var.name_prefix))
-    error_message = "name_prefix must be 3 to 24 characters: lowercase letters, digits, and hyphens, starting with a letter and not ending with a hyphen."
+    condition     = can(regex("^lf-[a-z0-9]([a-z0-9-]{0,19}[a-z0-9])?$", var.name_prefix))
+    error_message = "name_prefix must start with lf- and continue with lowercase letters, digits, and hyphens, 4 to 24 characters in all, not ending with a hyphen."
   }
 }
 

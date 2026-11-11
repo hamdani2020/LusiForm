@@ -32,8 +32,8 @@ mock_provider "aws" {
 }
 
 variables {
-  name_prefix        = "demo-app"
-  flow_log_group_arn = "arn:aws:logs:us-east-1:000000000000:log-group:/vpc/demo-app-flow-logs"
+  name_prefix        = "lf-demo"
+  flow_log_group_arn = "arn:aws:logs:us-east-1:000000000000:log-group:/vpc/lf-demo-flow-logs"
   db_secret_arn      = "arn:aws:secretsmanager:us-east-1:000000000000:secret:rds!db-0000-AbCdEf"
 }
 
@@ -122,8 +122,8 @@ run "flow_log_role_writes_only_to_the_flow_log_group" {
   assert {
     condition = (
       jsondecode(aws_iam_policy.flow_logs.policy).Statement[0].Resource == [
-        "arn:aws:logs:us-east-1:000000000000:log-group:/vpc/demo-app-flow-logs",
-        "arn:aws:logs:us-east-1:000000000000:log-group:/vpc/demo-app-flow-logs:*",
+        "arn:aws:logs:us-east-1:000000000000:log-group:/vpc/lf-demo-flow-logs",
+        "arn:aws:logs:us-east-1:000000000000:log-group:/vpc/lf-demo-flow-logs:*",
       ]
     )
     error_message = "the flow log role must be limited to the one flow log group"
@@ -202,5 +202,33 @@ run "outputs_point_at_the_matching_roles" {
       aws_iam_role_policy_attachment.flow_logs.role == aws_iam_role.flow_logs.name
     )
     error_message = "each custom policy must be attached to the role it was written for"
+  }
+}
+
+run "rejects_a_name_prefix_without_the_lf_prefix" {
+  command = plan
+
+  variables {
+    name_prefix = "demo-app"
+  }
+
+  expect_failures = [var.name_prefix]
+}
+
+run "rejects_a_name_prefix_longer_than_24_characters" {
+  command = plan
+
+  variables {
+    name_prefix = "lf-aaaaaaaaaaaaaaaaaaaaaa"
+  }
+
+  expect_failures = [var.name_prefix]
+}
+
+run "accepts_a_24_character_name_prefix" {
+  command = plan
+
+  variables {
+    name_prefix = "lf-aaaaaaaaaaaaaaaaaaaaa"
   }
 }

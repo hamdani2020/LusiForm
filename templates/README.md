@@ -18,21 +18,22 @@ templates/
     <semver>/                 one directory per template version
       template.json           version, status, tool pins, review record
       schema.json             parameter schema (JSON Schema)
-      inventory.json          every resource type the template can create
-      sandbox-policy.json     cross-account policy derived from the inventory
+      inventory.json          every resource block the template can create
+      iam-catalog.json        IAM actions each resource type needs (hand-maintained)
+      iam-reference.json      AWS's facts about those actions (generated, committed)
+      sandbox-policy.json     cross-account policy documents (generated)
       modules/                static HCL: network, compute, database, monitoring, iam
         <module>/             main.tf variables.tf outputs.tf versions.tf
       root/                   Jinja2 templates for the rendered root project (*.tmpl)
       tests/<module>/         Terraform tests (*.tftest.hcl, mocked AWS provider)
       tests/.terraform.lock.hcl  provider lock used when the module tests run
       fixtures/               params/, golden/, insecure/ used by tests
-  template_tools/             schema validation (standard library only)
-  scripts/                    test runner
+  template_tools/             schema validation and sandbox policy generator (standard library only)
+  scripts/                    test runner, IAM reference builder
   tests/                      pytest suite for the template
 ```
 
-`inventory.json` and `sandbox-policy.json` are added by later tasks of the
-`startup-template` spec. `1.0.0` is a draft until then.
+`1.0.0` is a draft until the expert review in task 12 of the `startup-template` spec.
 
 Module tests live in `startup/<version>/tests/`, outside `modules/`, so test fixtures
 (fake ARNs and account IDs) can never be copied into a rendered project. The renderer
@@ -101,13 +102,86 @@ which fails `terraform fmt -check`). The context is:
 | `terraform_constraint` | `>= 1.10.0`, from `template.json` |
 | `aws_provider_constraint` | `~> 5.47`, from `template.json` |
 | `region` | the project's region |
-| `name_prefix` | derived from the project id (3 to 24 characters, lowercase letters, digits, hyphens); never typed text |
+| `name_prefix` | derived from the project id: `lf-` followed by lowercase letters, digits, and hyphens, 4 to 24 characters, not ending in a hyphen (for example `lf-0a1b2c3d`); never typed text. The sandbox policy scopes ARNs to `lf-*`, so the modules refuse any other prefix |
 | `project_name`, `customer_name` | display text, already escaped for Markdown; used in `README.md` only |
 | `modules` | the parameters nested by module, for example `modules.compute.min_tasks` |
 
 `tests/reference_render.py` is a test-only implementation of this contract. The real
 renderer in the generation-pipeline spec must match its output byte for byte, and its
 golden tests replace the helper.
+
+## Resource inventory
+
+`inventory.json` has one entry per Terraform resource block in `modules/`: its module, its
+address within the module (so the graph address is `module.<module>.<address>`), its type,
+how many instances it has, how it is drawn, and its pricing hints.
+
+- `representation`: `node` (drawn as a diagram node of the named `node` type), `group`
+  (drawn as a container: the VPC and the subnets, with a `tier`), or `hidden` (listed in
+  the graph's `hidden` set).
+- `instances`: `{"fixed": n}`, `{"parameter": "network.az_count"}` for a count set by a
+  template parameter, or `{"optional": "certificate_arn"}` for 0 or 1 set by a deploy-time
+  input that is not a parameter.
+- `pricing`: hints for the estimate service. Each names a billable line item and the Pricing
+  API service code; the filters and quantity formulas live in the estimate service. Beyond
+  the line items in the generation-pipeline design, `public_ipv4_hours` covers the public IPv4
+  address charge on the NAT gateways' Elastic IPs.
+
+A test compares the inventory to the module files block for block, including each `count`
+expression, so a new or changed block cannot be missed.
+
+## Sandbox policy
+
+The partner's sandbox role is given exactly the permissions the template's resource types
+need. `sandbox-policy.json` is generated, not written by hand:
+
+```
+iam-catalog.json    what each Terraform resource type needs (you edit this)
+iam-reference.json  AWS's own list of actions, resource types, and condition keys
+inventory.json      which resource types exist
+        │
+        ▼  python -m template_tools.sandbox_policy startup/<version>
+sandbox-policy.json
+```
+
+The file holds several IAM policy documents because the whole policy is larger than IAM's
+6,144-character limit for one managed policy; a role can hold ten. Each document stays under
+5,900 characters and keeps each service's statements together.
+
+**How actions are scoped.** Creating a resource is allowed only when the request carries the
+`lusiform-managed` tag (the root project's `default_tags` set it). Changing or deleting a
+resource, and reading it where AWS supports resource-level permissions, requires the resource
+to carry that tag. Names are scoped to `lf-*` wherever a resource has a name. Tag-on-create
+is limited to the creating action where AWS offers that condition. IAM role attachment is
+limited to the two AWS managed policies the template uses and the project's own `lf-*`
+policies; `iam:PassRole` is limited to the four named roles and the service that receives
+each. Where AWS offers no way to scope an action, the generator refuses unless the catalog
+lists it under `accepted_unscoped`, and every broader-than-intended statement is named in
+`known_gaps`.
+
+**Commands** (run in the worker container; the repo has no Python on the host):
+
+```
+# rewrite or check the policy after editing the catalog or the inventory
+docker compose run --rm --no-deps -w /app/templates worker \
+  python -m template_tools.sandbox_policy startup/1.0.0
+docker compose run --rm --no-deps -w /app/templates worker \
+  python -m template_tools.sandbox_policy startup/1.0.0 --check
+
+# refresh the AWS reference (rare): download the nine service files from
+# https://servicereference.us-east-1.amazonaws.com/v1/<prefix>/<prefix>.json
+# (ec2, elasticloadbalancing, ecs, application-autoscaling, cloudwatch, logs, rds, kms, iam,
+# secretsmanager) into a git-ignored directory, then
+docker compose run --rm --no-deps -w /app/templates worker \
+  python scripts/build_iam_reference.py <dir> startup/1.0.0 --retrieved YYYY-MM-DD
+```
+
+**What is and is not verified.** The tests check the policy against the committed AWS
+reference: every action exists, is paired with resource types AWS says it accepts, and every
+condition key applies to every action in its statement, so no statement is silently dead.
+The action lists come from the AWS provider's source (version 5.100.0) and AWS
+documentation. The policy has not been run against an account; `iam-catalog.json` lists the
+assumptions that only a real apply can confirm.
 
 ## Running the tests
 

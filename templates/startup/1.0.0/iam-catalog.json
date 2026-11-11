@@ -1,0 +1,480 @@
+{
+  "schema": "lusiform.iam-catalog/1",
+  "template": "startup",
+  "version": "1.0.0",
+  "notes": [
+    "Hand-maintained input to sandbox-policy.json. For each Terraform resource type in inventory.json it lists the IAM actions the AWS provider needs, split by role. template_tools/sandbox_policy.py turns it, the inventory, and iam-reference.json into the policy.",
+    "Source of the action lists: the API calls reachable from each resource in terraform-provider-aws v5.100.0 (CRUD, finders, waiters), plus tag-helper calls and the 'on behalf of' permissions AWS documents (PassRole, service-linked roles, KMS grants, Secrets Manager). Nothing here has been run against AWS; see 'assumptions'.",
+    "create: actions that create the resource; the created label is gated on the request tag. write: actions that change or delete it; gated on the resource tag. read: Describe/Get/List actions; scoped by ARN when AWS supports it, otherwise '*'. tag: tagging actions; tag-on-create is gated on the request tag (and on the CreateAction when AWS offers that key), changes to existing tags on the resource tag.",
+    "creates and uses are resource-type labels ('<service>:<resource type in the AWS Service Authorization Reference>'). uses are existing resources the actions touch; they are gated on the resource tag.",
+    "AWS accounts are written as ${aws:PrincipalAccount} so the policy needs no account ID. Only the standard 'aws' partition is supported."
+  ],
+  "tag": { "key": "lusiform-managed", "value": "true" },
+  "account": "${aws:PrincipalAccount}",
+  "arns": {
+    "ec2:vpc": ["arn:aws:ec2:*:${aws:PrincipalAccount}:vpc/*"],
+    "ec2:subnet": ["arn:aws:ec2:*:${aws:PrincipalAccount}:subnet/*"],
+    "ec2:route-table": ["arn:aws:ec2:*:${aws:PrincipalAccount}:route-table/*"],
+    "ec2:internet-gateway": ["arn:aws:ec2:*:${aws:PrincipalAccount}:internet-gateway/*"],
+    "ec2:elastic-ip": ["arn:aws:ec2:*:${aws:PrincipalAccount}:elastic-ip/*"],
+    "ec2:natgateway": ["arn:aws:ec2:*:${aws:PrincipalAccount}:natgateway/*"],
+    "ec2:security-group": ["arn:aws:ec2:*:${aws:PrincipalAccount}:security-group/*"],
+    "ec2:security-group-rule": ["arn:aws:ec2:*:${aws:PrincipalAccount}:security-group-rule/*"],
+    "ec2:vpc-flow-log": ["arn:aws:ec2:*:${aws:PrincipalAccount}:vpc-flow-log/*"],
+    "elasticloadbalancing:loadbalancer/app/": ["arn:aws:elasticloadbalancing:*:${aws:PrincipalAccount}:loadbalancer/app/lf-*/*"],
+    "elasticloadbalancing:targetgroup": ["arn:aws:elasticloadbalancing:*:${aws:PrincipalAccount}:targetgroup/lf-*/*"],
+    "elasticloadbalancing:listener/app": ["arn:aws:elasticloadbalancing:*:${aws:PrincipalAccount}:listener/app/lf-*/*/*"],
+    "ecs:cluster": ["arn:aws:ecs:*:${aws:PrincipalAccount}:cluster/lf-*"],
+    "ecs:service": ["arn:aws:ecs:*:${aws:PrincipalAccount}:service/lf-*/lf-*"],
+    "ecs:task-definition": ["arn:aws:ecs:*:${aws:PrincipalAccount}:task-definition/lf-*:*"],
+    "application-autoscaling:ScalableTarget": ["arn:aws:application-autoscaling:*:${aws:PrincipalAccount}:scalable-target/*"],
+    "cloudwatch:alarm": ["arn:aws:cloudwatch:*:${aws:PrincipalAccount}:alarm:lf-*"],
+    "logs:log-group": [
+      "arn:aws:logs:*:${aws:PrincipalAccount}:log-group:/ecs/lf-*",
+      "arn:aws:logs:*:${aws:PrincipalAccount}:log-group:/vpc/lf-*"
+    ],
+    "rds:db": ["arn:aws:rds:*:${aws:PrincipalAccount}:db:lf-*"],
+    "rds:subgrp": ["arn:aws:rds:*:${aws:PrincipalAccount}:subgrp:lf-*"],
+    "rds:pg": ["arn:aws:rds:*:${aws:PrincipalAccount}:pg:lf-*"],
+    "rds:snapshot": ["arn:aws:rds:*:${aws:PrincipalAccount}:snapshot:lf-*"],
+    "rds:cluster": ["arn:aws:rds:*:${aws:PrincipalAccount}:cluster:*"],
+    "kms:key": ["arn:aws:kms:*:${aws:PrincipalAccount}:key/*"],
+    "kms:alias": ["arn:aws:kms:*:${aws:PrincipalAccount}:alias/lf-*"],
+    "iam:role": ["arn:aws:iam::${aws:PrincipalAccount}:role/lf-*"],
+    "iam:policy": ["arn:aws:iam::${aws:PrincipalAccount}:policy/lf-*"],
+    "secretsmanager:Secret": ["arn:aws:secretsmanager:*:${aws:PrincipalAccount}:secret:rds!*"]
+  },
+  "name_only": [
+    "ec2:security-group-rule",
+    "kms:alias",
+    "rds:snapshot",
+    "rds:cluster",
+    "secretsmanager:Secret"
+  ],
+  "types": {
+    "aws_vpc": {
+      "creates": ["ec2:vpc"],
+      "create": ["ec2:CreateVpc"],
+      "write": ["ec2:ModifyVpcAttribute", "ec2:DeleteVpc"],
+      "read": ["ec2:DescribeVpcs", "ec2:DescribeVpcAttribute", "ec2:DescribeNetworkAcls", "ec2:DescribeRouteTables", "ec2:DescribeSecurityGroups"],
+      "tag": ["ec2:CreateTags", "ec2:DeleteTags"]
+    },
+    "aws_default_security_group": {
+      "read": ["ec2:DescribeSecurityGroups", "ec2:DescribeSecurityGroupRules"]
+    },
+    "aws_internet_gateway": {
+      "creates": ["ec2:internet-gateway"],
+      "uses": ["ec2:vpc"],
+      "create": ["ec2:CreateInternetGateway"],
+      "write": ["ec2:AttachInternetGateway", "ec2:DetachInternetGateway", "ec2:DeleteInternetGateway"],
+      "read": ["ec2:DescribeInternetGateways"],
+      "tag": ["ec2:CreateTags", "ec2:DeleteTags"]
+    },
+    "aws_subnet": {
+      "creates": ["ec2:subnet"],
+      "uses": ["ec2:vpc"],
+      "create": ["ec2:CreateSubnet"],
+      "write": ["ec2:ModifySubnetAttribute", "ec2:DeleteSubnet"],
+      "read": ["ec2:DescribeSubnets", "ec2:DescribeNetworkInterfaces"],
+      "tag": ["ec2:CreateTags", "ec2:DeleteTags"]
+    },
+    "aws_route_table": {
+      "creates": ["ec2:route-table"],
+      "uses": ["ec2:vpc"],
+      "create": ["ec2:CreateRouteTable"],
+      "write": ["ec2:DeleteRouteTable"],
+      "read": ["ec2:DescribeRouteTables"],
+      "tag": ["ec2:CreateTags", "ec2:DeleteTags"]
+    },
+    "aws_route": {
+      "uses": ["ec2:route-table"],
+      "write": ["ec2:CreateRoute", "ec2:ReplaceRoute", "ec2:DeleteRoute"],
+      "read": ["ec2:DescribeRouteTables"]
+    },
+    "aws_route_table_association": {
+      "uses": ["ec2:route-table", "ec2:subnet"],
+      "write": ["ec2:AssociateRouteTable", "ec2:ReplaceRouteTableAssociation", "ec2:DisassociateRouteTable"],
+      "read": ["ec2:DescribeRouteTables"]
+    },
+    "aws_eip": {
+      "creates": ["ec2:elastic-ip"],
+      "create": ["ec2:AllocateAddress"],
+      "write": ["ec2:ReleaseAddress"],
+      "read": ["ec2:DescribeAddresses", "ec2:DescribeAddressesAttribute"],
+      "tag": ["ec2:CreateTags", "ec2:DeleteTags"]
+    },
+    "aws_nat_gateway": {
+      "creates": ["ec2:natgateway"],
+      "uses": ["ec2:subnet", "ec2:elastic-ip", "ec2:vpc"],
+      "create": ["ec2:CreateNatGateway"],
+      "write": ["ec2:DeleteNatGateway"],
+      "read": ["ec2:DescribeNatGateways"],
+      "tag": ["ec2:CreateTags", "ec2:DeleteTags"]
+    },
+    "aws_flow_log": {
+      "creates": ["ec2:vpc-flow-log"],
+      "uses": ["ec2:vpc"],
+      "create": ["ec2:CreateFlowLogs"],
+      "write": ["ec2:DeleteFlowLogs"],
+      "read": ["ec2:DescribeFlowLogs"],
+      "tag": ["ec2:CreateTags", "ec2:DeleteTags"]
+    },
+    "aws_security_group": {
+      "creates": ["ec2:security-group"],
+      "uses": ["ec2:vpc", "ec2:security-group-rule"],
+      "create": ["ec2:CreateSecurityGroup"],
+      "write": [
+        "ec2:AuthorizeSecurityGroupIngress",
+        "ec2:AuthorizeSecurityGroupEgress",
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupEgress",
+        "ec2:DeleteSecurityGroup"
+      ],
+      "read": ["ec2:DescribeSecurityGroups", "ec2:DescribeSecurityGroupRules", "ec2:DescribeNetworkInterfaces"],
+      "tag": ["ec2:CreateTags", "ec2:DeleteTags"]
+    },
+    "aws_lb": {
+      "creates": ["elasticloadbalancing:loadbalancer/app/"],
+      "create": ["elasticloadbalancing:CreateLoadBalancer"],
+      "write": [
+        "elasticloadbalancing:ModifyLoadBalancerAttributes",
+        "elasticloadbalancing:SetSecurityGroups",
+        "elasticloadbalancing:SetSubnets",
+        "elasticloadbalancing:DeleteLoadBalancer"
+      ],
+      "read": [
+        "elasticloadbalancing:DescribeLoadBalancers",
+        "elasticloadbalancing:DescribeLoadBalancerAttributes",
+        "elasticloadbalancing:DescribeCapacityReservation",
+        "elasticloadbalancing:DescribeTags",
+        "ec2:DescribeAccountAttributes",
+        "ec2:DescribeAddresses",
+        "ec2:DescribeInternetGateways",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeVpcs"
+      ],
+      "tag": ["elasticloadbalancing:AddTags", "elasticloadbalancing:RemoveTags"]
+    },
+    "aws_lb_target_group": {
+      "creates": ["elasticloadbalancing:targetgroup"],
+      "create": ["elasticloadbalancing:CreateTargetGroup"],
+      "write": [
+        "elasticloadbalancing:ModifyTargetGroup",
+        "elasticloadbalancing:ModifyTargetGroupAttributes",
+        "elasticloadbalancing:DeleteTargetGroup"
+      ],
+      "read": [
+        "elasticloadbalancing:DescribeTargetGroups",
+        "elasticloadbalancing:DescribeTargetGroupAttributes",
+        "elasticloadbalancing:DescribeTags"
+      ],
+      "tag": ["elasticloadbalancing:AddTags", "elasticloadbalancing:RemoveTags"]
+    },
+    "aws_lb_listener": {
+      "creates": ["elasticloadbalancing:listener/app"],
+      "uses": ["elasticloadbalancing:loadbalancer/app/"],
+      "create": ["elasticloadbalancing:CreateListener"],
+      "write": [
+        "elasticloadbalancing:ModifyListener",
+        "elasticloadbalancing:ModifyListenerAttributes",
+        "elasticloadbalancing:DeleteListener"
+      ],
+      "read": [
+        "elasticloadbalancing:DescribeListeners",
+        "elasticloadbalancing:DescribeListenerAttributes",
+        "elasticloadbalancing:DescribeTags"
+      ],
+      "tag": ["elasticloadbalancing:AddTags", "elasticloadbalancing:RemoveTags"]
+    },
+    "aws_ecs_cluster": {
+      "creates": ["ecs:cluster"],
+      "create": ["ecs:CreateCluster"],
+      "write": ["ecs:UpdateCluster", "ecs:DeleteCluster"],
+      "read": ["ecs:DescribeClusters", "ecs:ListTagsForResource"],
+      "tag": ["ecs:TagResource", "ecs:UntagResource"]
+    },
+    "aws_ecs_task_definition": {
+      "creates": ["ecs:task-definition"],
+      "create": ["ecs:RegisterTaskDefinition"],
+      "write": ["ecs:DeregisterTaskDefinition"],
+      "read": ["ecs:DescribeTaskDefinition", "ecs:ListTagsForResource"],
+      "tag": ["ecs:TagResource", "ecs:UntagResource"]
+    },
+    "aws_ecs_service": {
+      "creates": ["ecs:service"],
+      "create": ["ecs:CreateService"],
+      "write": ["ecs:UpdateService", "ecs:DeleteService"],
+      "read": ["ecs:DescribeServices", "ecs:ListTagsForResource"],
+      "tag": ["ecs:TagResource", "ecs:UntagResource"]
+    },
+    "aws_appautoscaling_target": {
+      "creates": ["application-autoscaling:ScalableTarget"],
+      "uses": ["ecs:service"],
+      "create": ["application-autoscaling:RegisterScalableTarget"],
+      "write": ["application-autoscaling:DeregisterScalableTarget", "ecs:UpdateService"],
+      "read": [
+        "application-autoscaling:DescribeScalableTargets",
+        "application-autoscaling:ListTagsForResource",
+        "ecs:DescribeServices"
+      ],
+      "tag": ["application-autoscaling:TagResource", "application-autoscaling:UntagResource"]
+    },
+    "aws_appautoscaling_policy": {
+      "uses": ["application-autoscaling:ScalableTarget"],
+      "write": ["application-autoscaling:PutScalingPolicy", "application-autoscaling:DeleteScalingPolicy"],
+      "read": ["application-autoscaling:DescribeScalingPolicies"]
+    },
+    "aws_db_subnet_group": {
+      "creates": ["rds:subgrp"],
+      "create": ["rds:CreateDBSubnetGroup"],
+      "write": ["rds:ModifyDBSubnetGroup", "rds:DeleteDBSubnetGroup"],
+      "read": ["rds:DescribeDBSubnetGroups", "rds:ListTagsForResource"],
+      "tag": ["rds:AddTagsToResource", "rds:RemoveTagsFromResource"]
+    },
+    "aws_db_parameter_group": {
+      "creates": ["rds:pg"],
+      "create": ["rds:CreateDBParameterGroup"],
+      "write": ["rds:ModifyDBParameterGroup", "rds:ResetDBParameterGroup", "rds:DeleteDBParameterGroup"],
+      "read": ["rds:DescribeDBParameterGroups", "rds:DescribeDBParameters", "rds:ListTagsForResource"],
+      "tag": ["rds:AddTagsToResource", "rds:RemoveTagsFromResource"]
+    },
+    "aws_db_instance": {
+      "creates": ["rds:db"],
+      "uses": ["rds:pg", "rds:subgrp", "rds:cluster"],
+      "create": ["rds:CreateDBInstance"],
+      "write": ["rds:ModifyDBInstance", "rds:DeleteDBInstance"],
+      "read": [
+        "rds:DescribeDBInstances",
+        "rds:DescribeDBClusters",
+        "rds:ListTagsForResource",
+        "ec2:DescribeAccountAttributes",
+        "ec2:DescribeAvailabilityZones",
+        "ec2:DescribeInternetGateways",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeVpcAttribute",
+        "ec2:DescribeVpcs"
+      ],
+      "tag": ["rds:AddTagsToResource", "rds:RemoveTagsFromResource"]
+    },
+    "aws_kms_key": {
+      "creates": ["kms:key"],
+      "create": ["kms:CreateKey"],
+      "write": [
+        "kms:PutKeyPolicy",
+        "kms:EnableKeyRotation",
+        "kms:DisableKeyRotation",
+        "kms:UpdateKeyDescription",
+        "kms:EnableKey",
+        "kms:DisableKey",
+        "kms:ScheduleKeyDeletion"
+      ],
+      "read": ["kms:DescribeKey", "kms:GetKeyPolicy", "kms:GetKeyRotationStatus", "kms:ListResourceTags"],
+      "tag": ["kms:TagResource", "kms:UntagResource"]
+    },
+    "aws_kms_alias": {
+      "creates": ["kms:alias"],
+      "uses": ["kms:key"],
+      "write": ["kms:CreateAlias", "kms:UpdateAlias", "kms:DeleteAlias"],
+      "read": ["kms:ListAliases"]
+    },
+    "aws_iam_role": {
+      "creates": ["iam:role"],
+      "create": ["iam:CreateRole"],
+      "write": ["iam:UpdateAssumeRolePolicy", "iam:UpdateRole", "iam:UpdateRoleDescription", "iam:DeleteRole"],
+      "read": ["iam:GetRole", "iam:ListRolePolicies", "iam:ListAttachedRolePolicies", "iam:ListInstanceProfilesForRole"],
+      "tag": ["iam:TagRole", "iam:UntagRole"]
+    },
+    "aws_iam_policy": {
+      "creates": ["iam:policy"],
+      "create": ["iam:CreatePolicy"],
+      "write": ["iam:CreatePolicyVersion", "iam:DeletePolicyVersion", "iam:DeletePolicy"],
+      "read": ["iam:GetPolicy", "iam:GetPolicyVersion", "iam:ListPolicyVersions"],
+      "tag": ["iam:TagPolicy", "iam:UntagPolicy"]
+    },
+    "aws_iam_role_policy_attachment": {
+      "uses": ["iam:role"],
+      "read": ["iam:ListAttachedRolePolicies"]
+    },
+    "aws_cloudwatch_log_group": {
+      "creates": ["logs:log-group"],
+      "create": ["logs:CreateLogGroup"],
+      "write": [
+        "logs:PutRetentionPolicy",
+        "logs:DeleteRetentionPolicy",
+        "logs:AssociateKmsKey",
+        "logs:DisassociateKmsKey",
+        "logs:DeleteLogGroup"
+      ],
+      "read": ["logs:DescribeLogGroups", "logs:ListTagsForResource"],
+      "tag": ["logs:TagResource", "logs:UntagResource"]
+    },
+    "aws_cloudwatch_metric_alarm": {
+      "creates": ["cloudwatch:alarm"],
+      "create": ["cloudwatch:PutMetricAlarm"],
+      "write": ["cloudwatch:DeleteAlarms"],
+      "read": ["cloudwatch:DescribeAlarms", "cloudwatch:ListTagsForResource"],
+      "tag": ["cloudwatch:TagResource", "cloudwatch:UntagResource"]
+    }
+  },
+  "extras": [
+    {
+      "id": "PassFlowLogRole",
+      "for": ["aws_flow_log"],
+      "actions": ["iam:PassRole"],
+      "resources": ["arn:aws:iam::${aws:PrincipalAccount}:role/lf-*-vpc-flow-logs"],
+      "condition": { "StringEquals": { "iam:PassedToService": "vpc-flow-logs.amazonaws.com" } },
+      "why": "CreateFlowLogs hands the flow log role to the VPC flow log service."
+    },
+    {
+      "id": "PassEcsTaskRoles",
+      "for": ["aws_ecs_task_definition"],
+      "actions": ["iam:PassRole"],
+      "resources": [
+        "arn:aws:iam::${aws:PrincipalAccount}:role/lf-*-ecs-execution",
+        "arn:aws:iam::${aws:PrincipalAccount}:role/lf-*-ecs-task"
+      ],
+      "condition": { "StringEquals": { "iam:PassedToService": "ecs-tasks.amazonaws.com" } },
+      "why": "RegisterTaskDefinition names the execution and task roles."
+    },
+    {
+      "id": "PassRdsMonitoringRole",
+      "for": ["aws_db_instance"],
+      "actions": ["iam:PassRole"],
+      "resources": ["arn:aws:iam::${aws:PrincipalAccount}:role/lf-*-rds-monitoring"],
+      "condition": { "StringEquals": { "iam:PassedToService": "monitoring.rds.amazonaws.com" } },
+      "why": "CreateDBInstance hands the enhanced monitoring role to RDS."
+    },
+    {
+      "id": "ServiceLinkedRoleEcs",
+      "for": ["aws_ecs_cluster"],
+      "actions": ["iam:CreateServiceLinkedRole"],
+      "resources": ["arn:aws:iam::${aws:PrincipalAccount}:role/aws-service-role/ecs.amazonaws.com/AWSServiceRoleForECS"],
+      "condition": { "StringEquals": { "iam:AWSServiceName": "ecs.amazonaws.com" } },
+      "why": "The first ECS cluster in an account creates the ECS service-linked role."
+    },
+    {
+      "id": "ServiceLinkedRoleLoadBalancing",
+      "for": ["aws_lb"],
+      "actions": ["iam:CreateServiceLinkedRole"],
+      "resources": ["arn:aws:iam::${aws:PrincipalAccount}:role/aws-service-role/elasticloadbalancing.amazonaws.com/AWSServiceRoleForElasticLoadBalancing"],
+      "condition": { "StringEquals": { "iam:AWSServiceName": "elasticloadbalancing.amazonaws.com" } },
+      "why": "The first load balancer in an account creates the Elastic Load Balancing service-linked role."
+    },
+    {
+      "id": "ServiceLinkedRoleRds",
+      "for": ["aws_db_instance"],
+      "actions": ["iam:CreateServiceLinkedRole"],
+      "resources": ["arn:aws:iam::${aws:PrincipalAccount}:role/aws-service-role/rds.amazonaws.com/AWSServiceRoleForRDS"],
+      "condition": { "StringEquals": { "iam:AWSServiceName": "rds.amazonaws.com" } },
+      "why": "The first RDS instance in an account creates the RDS service-linked role."
+    },
+    {
+      "id": "ServiceLinkedRoleAutoScaling",
+      "for": ["aws_appautoscaling_target"],
+      "actions": ["iam:CreateServiceLinkedRole"],
+      "resources": ["arn:aws:iam::${aws:PrincipalAccount}:role/aws-service-role/ecs.application-autoscaling.amazonaws.com/AWSServiceRoleForApplicationAutoScaling_ECSService"],
+      "condition": { "StringEquals": { "iam:AWSServiceName": "ecs.application-autoscaling.amazonaws.com" } },
+      "why": "The first ECS scalable target in an account creates the Application Auto Scaling service-linked role."
+    },
+    {
+      "id": "RdsCreateKeyGrant",
+      "for": ["aws_db_instance"],
+      "actions": ["kms:CreateGrant"],
+      "resources": ["kms:key"],
+      "tag": "resource",
+      "condition": { "Bool": { "kms:GrantIsForAWSResource": "true" } },
+      "why": "RDS creates a grant on the customer-managed key that encrypts the database storage, on the caller's behalf."
+    },
+    {
+      "id": "RdsDescribeManagedSecretKey",
+      "for": ["aws_db_instance"],
+      "actions": ["kms:DescribeKey"],
+      "resources": ["kms:key"],
+      "condition": { "ForAnyValue:StringEquals": { "kms:ResourceAliases": "alias/aws/secretsmanager" } },
+      "why": "Managing the master password in Secrets Manager requires kms:DescribeKey on the AWS managed key aws/secretsmanager, which carries no project tag."
+    },
+    {
+      "id": "RdsManagedSecret",
+      "for": ["aws_db_instance"],
+      "actions": ["secretsmanager:CreateSecret", "secretsmanager:TagResource"],
+      "resources": ["secretsmanager:Secret"],
+      "why": "RDS creates the master password secret (named rds!db-...) on the caller's behalf."
+    },
+    {
+      "id": "RdsFinalSnapshotOfInstance",
+      "for": ["aws_db_instance"],
+      "actions": ["rds:CreateDBSnapshot"],
+      "resources": ["rds:db"],
+      "tag": "resource",
+      "why": "Destroying a database with a final snapshot creates a snapshot of the instance."
+    },
+    {
+      "id": "RdsFinalSnapshot",
+      "for": ["aws_db_instance"],
+      "actions": ["rds:CreateDBSnapshot"],
+      "resources": ["rds:snapshot"],
+      "why": "The final snapshot itself, named after the project prefix."
+    },
+    {
+      "id": "AutoScalingAlarmValidation",
+      "for": ["aws_appautoscaling_target"],
+      "actions": ["cloudwatch:PutMetricAlarm", "cloudwatch:DeleteAlarms", "cloudwatch:DescribeAlarms"],
+      "resources": ["arn:aws:cloudwatch:*:${aws:PrincipalAccount}:alarm:*"],
+      "why": "Application Auto Scaling checks the caller's CloudWatch permissions by calling these actions with no alarm name, so alarm names cannot be restricted. Accepted gap."
+    },
+    {
+      "id": "AttachAllowedManagedPolicies",
+      "for": ["aws_iam_role_policy_attachment"],
+      "actions": ["iam:AttachRolePolicy", "iam:DetachRolePolicy"],
+      "resources": ["iam:role"],
+      "tag": "resource",
+      "condition": {
+        "ArnLike": {
+          "iam:PolicyARN": [
+            "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy",
+            "arn:aws:iam::aws:policy/service-role/AmazonRDSEnhancedMonitoringRole",
+            "arn:aws:iam::${aws:PrincipalAccount}:policy/lf-*"
+          ]
+        }
+      },
+      "why": "Roles may only be given the two AWS managed policies the template uses and the project's own policies."
+    },
+    {
+      "id": "DefaultSecurityGroup",
+      "for": ["aws_default_security_group"],
+      "actions": [
+        "ec2:RevokeSecurityGroupIngress",
+        "ec2:RevokeSecurityGroupEgress",
+        "ec2:CreateTags",
+        "ec2:DeleteTags"
+      ],
+      "resources": ["ec2:security-group"],
+      "why": "AWS creates the VPC's default security group untagged, so it cannot be gated on the project tag. Accepted gap: these actions apply to any security group in the account."
+    }
+  ],
+  "accepted_unscoped": {
+    "ecs:DeregisterTaskDefinition": "AWS offers no resource type for this action, so it applies to any task definition in the account.",
+    "kms:CreateKey": "A key does not exist before it is created. Creation is gated on the request tag."
+  },
+  "known_gaps": [
+    "AWS creates a VPC's default security group untagged, so revoking its rules and tagging it (DefaultSecurityGroup) cannot be limited to project resources.",
+    "Application Auto Scaling validates the caller's CloudWatch permissions with calls that carry no alarm name, so CloudWatch alarm writes (AutoScalingAlarmValidation) apply to every alarm in the account.",
+    "ecs:DeregisterTaskDefinition has no resource type and applies to every task definition in the account.",
+    "Creating IAM roles and policies named lf-* is allowed. Attaching is limited to two AWS managed policies and lf-* policies, but the content of an lf-* policy is not restricted, so the role can be used to grant permissions inside the sandbox account.",
+    "Services that offer no CreateAction condition (CloudWatch Logs, RDS, KMS, IAM, CloudWatch, Application Auto Scaling, Secrets Manager) gate tag-on-create on the request tag only. KMS keys and Application Auto Scaling targets have no name to scope by, so an untagged one could be claimed by tagging it with the project tag.",
+    "The secret RDS creates for the master password is not tag-gated; it is limited to the name prefix rds!.",
+    "The policy covers every region in the sandbox account. Restrict regions in the role's permission boundary or with aws:RequestedRegion if the sandbox spec needs it.",
+    "The Terraform state bucket is not covered. The sandbox spec must grant S3 access to the state location separately."
+  ],
+  "assumptions": [
+    "${aws:PrincipalAccount} is accepted as a policy variable in Resource ARNs and condition values (AWS documents that any single-valued context key can be used as a policy variable). Not exercised against AWS.",
+    "The API calls come from the provider source for the pinned version (5.100.0). Behaviour the source does not show (retries after eventual-consistency errors, lingering network interfaces left by deleted load balancers) is not covered.",
+    "Creating the VPC flow log needs ec2:CreateFlowLogs and iam:PassRole, as documented, and the narrow flow log role in the iam module is enough for delivery. The module's role grants CreateLogStream, PutLogEvents, and DescribeLogStreams on one log group, while AWS documentation shows broader permissions.",
+    "Associating the KMS key with a log group needs only logs:AssociateKmsKey for the caller; the key policy lets CloudWatch Logs use the key.",
+    "Registering an ECS scalable target needs ecs:DescribeServices, ecs:UpdateService, and the CloudWatch actions in AutoScalingAlarmValidation, per AWS documentation.",
+    "RDS deletes the secret it manages when the instance is destroyed, without further permissions from the caller.",
+    "Service-linked roles are created on first use; later applies do not need iam:CreateServiceLinkedRole."
+  ]
+}

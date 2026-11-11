@@ -9,33 +9,33 @@ mock_provider "aws" {
 
   mock_resource "aws_lb" {
     defaults = {
-      arn        = "arn:aws:elasticloadbalancing:us-east-1:000000000000:loadbalancer/app/demo-app-alb/0123456789abcdef"
-      arn_suffix = "app/demo-app-alb/0123456789abcdef"
-      dns_name   = "demo-app-alb-123456789.us-east-1.elb.amazonaws.com"
+      arn        = "arn:aws:elasticloadbalancing:us-east-1:000000000000:loadbalancer/app/lf-demo-alb/0123456789abcdef"
+      arn_suffix = "app/lf-demo-alb/0123456789abcdef"
+      dns_name   = "lf-demo-alb-123456789.us-east-1.elb.amazonaws.com"
     }
   }
 
   mock_resource "aws_lb_target_group" {
     defaults = {
-      arn = "arn:aws:elasticloadbalancing:us-east-1:000000000000:targetgroup/demo-app-tg/0123456789abcdef"
+      arn = "arn:aws:elasticloadbalancing:us-east-1:000000000000:targetgroup/lf-demo-tg/0123456789abcdef"
     }
   }
 
   mock_resource "aws_ecs_task_definition" {
     defaults = {
-      arn = "arn:aws:ecs:us-east-1:000000000000:task-definition/demo-app-app:1"
+      arn = "arn:aws:ecs:us-east-1:000000000000:task-definition/lf-demo-app:1"
     }
   }
 
   mock_resource "aws_ecs_cluster" {
     defaults = {
-      arn = "arn:aws:ecs:us-east-1:000000000000:cluster/demo-app-cluster"
+      arn = "arn:aws:ecs:us-east-1:000000000000:cluster/lf-demo-cluster"
     }
   }
 }
 
 variables {
-  name_prefix        = "demo-app"
+  name_prefix        = "lf-demo"
   vpc_id             = "vpc-0123456789abcdef0"
   vpc_cidr           = "10.0.0.0/16"
   public_subnet_ids  = ["subnet-0aaaaaaaaaaaaaaa1", "subnet-0bbbbbbbbbbbbbbb2"]
@@ -44,10 +44,10 @@ variables {
   min_tasks          = 2
   max_tasks          = 6
   container_image    = "registry.example.com/team/app:1.2.3"
-  execution_role_arn = "arn:aws:iam::000000000000:role/demo-app-ecs-execution"
-  task_role_arn      = "arn:aws:iam::000000000000:role/demo-app-ecs-task"
-  log_group_name     = "/ecs/demo-app"
-  db_host            = "demo-app-db.example.us-east-1.rds.amazonaws.com"
+  execution_role_arn = "arn:aws:iam::000000000000:role/lf-demo-ecs-execution"
+  task_role_arn      = "arn:aws:iam::000000000000:role/lf-demo-ecs-task"
+  log_group_name     = "/ecs/lf-demo"
+  db_host            = "lf-demo-db.example.us-east-1.rds.amazonaws.com"
   db_port            = 5432
   db_name            = "app"
   db_secret_arn      = "arn:aws:secretsmanager:us-east-1:000000000000:secret:rds!db-0000-AbCdEf"
@@ -158,7 +158,7 @@ run "logs_go_to_the_supplied_group_and_credentials_come_from_secrets_manager" {
   assert {
     condition = (
       jsondecode(aws_ecs_task_definition.app.container_definitions)[0].logConfiguration.logDriver == "awslogs" &&
-      jsondecode(aws_ecs_task_definition.app.container_definitions)[0].logConfiguration.options["awslogs-group"] == "/ecs/demo-app" &&
+      jsondecode(aws_ecs_task_definition.app.container_definitions)[0].logConfiguration.options["awslogs-group"] == "/ecs/lf-demo" &&
       jsondecode(aws_ecs_task_definition.app.container_definitions)[0].logConfiguration.options["awslogs-region"] == "us-east-1"
     )
     error_message = "container logs must go to the monitoring module's log group"
@@ -241,7 +241,7 @@ run "autoscaling_spans_min_to_max_on_cpu" {
   }
 
   assert {
-    condition     = aws_appautoscaling_target.service.scalable_dimension == "ecs:service:DesiredCount" && aws_appautoscaling_target.service.resource_id == "service/demo-app-cluster/demo-app-app"
+    condition     = aws_appautoscaling_target.service.scalable_dimension == "ecs:service:DesiredCount" && aws_appautoscaling_target.service.resource_id == "service/lf-demo-cluster/lf-demo-app"
     error_message = "scaling must target the service's desired count"
   }
 
@@ -446,12 +446,12 @@ run "outputs_feed_monitoring_and_dns" {
   command = apply
 
   assert {
-    condition     = output.alb_arn_suffix == "app/demo-app-alb/0123456789abcdef" && output.alb_dns_name == "demo-app-alb-123456789.us-east-1.elb.amazonaws.com"
+    condition     = output.alb_arn_suffix == "app/lf-demo-alb/0123456789abcdef" && output.alb_dns_name == "lf-demo-alb-123456789.us-east-1.elb.amazonaws.com"
     error_message = "the load balancer identifiers are exported"
   }
 
   assert {
-    condition     = output.cluster_name == "demo-app-cluster" && output.service_name == "demo-app-app"
+    condition     = output.cluster_name == "lf-demo-cluster" && output.service_name == "lf-demo-app"
     error_message = "the cluster and service names are exported for the CPU alarm"
   }
 }
@@ -517,4 +517,32 @@ run "rejects_three_private_subnets" {
   }
 
   expect_failures = [var.private_subnet_ids]
+}
+
+run "rejects_a_name_prefix_without_the_lf_prefix" {
+  command = plan
+
+  variables {
+    name_prefix = "demo-app"
+  }
+
+  expect_failures = [var.name_prefix]
+}
+
+run "rejects_a_name_prefix_longer_than_24_characters" {
+  command = plan
+
+  variables {
+    name_prefix = "lf-aaaaaaaaaaaaaaaaaaaaaa"
+  }
+
+  expect_failures = [var.name_prefix]
+}
+
+run "accepts_a_24_character_name_prefix" {
+  command = plan
+
+  variables {
+    name_prefix = "lf-aaaaaaaaaaaaaaaaaaaaa"
+  }
 }

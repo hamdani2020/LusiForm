@@ -9,7 +9,7 @@ mock_provider "aws" {
 
   mock_resource "aws_db_instance" {
     defaults = {
-      address = "demo-app-db.example.us-east-1.rds.amazonaws.com"
+      address = "lf-demo-db.example.us-east-1.rds.amazonaws.com"
       port    = 5432
       master_user_secret = [{
         secret_arn    = "arn:aws:secretsmanager:us-east-1:000000000000:secret:rds!db-0000-AbCdEf"
@@ -21,12 +21,12 @@ mock_provider "aws" {
 }
 
 variables {
-  name_prefix               = "demo-app"
+  name_prefix               = "lf-demo"
   vpc_id                    = "vpc-0123456789abcdef0"
   subnet_ids                = ["subnet-0aaaaaaaaaaaaaaa1", "subnet-0bbbbbbbbbbbbbbb2"]
   primary_availability_zone = "us-east-1a"
   allowed_security_group_id = "sg-0123456789abcdef0"
-  monitoring_role_arn       = "arn:aws:iam::000000000000:role/demo-app-rds-monitoring"
+  monitoring_role_arn       = "arn:aws:iam::000000000000:role/lf-demo-rds-monitoring"
   instance_class            = "db.t4g.micro"
   storage_gb                = 20
   backup_retention_days     = 7
@@ -63,7 +63,7 @@ run "engine_is_postgres_16_with_the_chosen_sizing" {
   }
 
   assert {
-    condition     = aws_db_instance.this.identifier == "demo-app-db"
+    condition     = aws_db_instance.this.identifier == "lf-demo-db"
     error_message = "the identifier is derived from the name prefix"
   }
 }
@@ -230,7 +230,7 @@ run "deletion_protection_and_final_snapshot_are_on_by_default" {
   }
 
   assert {
-    condition     = aws_db_instance.this.skip_final_snapshot == false && aws_db_instance.this.final_snapshot_identifier == "demo-app-db-final"
+    condition     = aws_db_instance.this.skip_final_snapshot == false && aws_db_instance.this.final_snapshot_identifier == "lf-demo-db-final"
     error_message = "a final snapshot must be taken by default"
   }
 }
@@ -258,7 +258,7 @@ run "outputs_expose_connection_details_but_never_a_password" {
   command = apply
 
   assert {
-    condition     = output.address == "demo-app-db.example.us-east-1.rds.amazonaws.com" && output.port == 5432 && output.db_name == "app"
+    condition     = output.address == "lf-demo-db.example.us-east-1.rds.amazonaws.com" && output.port == 5432 && output.db_name == "app"
     error_message = "connection details must be exported"
   }
 
@@ -326,4 +326,32 @@ run "rejects_another_major_version" {
   }
 
   expect_failures = [var.engine_version]
+}
+
+run "rejects_a_name_prefix_without_the_lf_prefix" {
+  command = plan
+
+  variables {
+    name_prefix = "demo-app"
+  }
+
+  expect_failures = [var.name_prefix]
+}
+
+run "rejects_a_name_prefix_longer_than_24_characters" {
+  command = plan
+
+  variables {
+    name_prefix = "lf-aaaaaaaaaaaaaaaaaaaaaa"
+  }
+
+  expect_failures = [var.name_prefix]
+}
+
+run "accepts_a_24_character_name_prefix" {
+  command = plan
+
+  variables {
+    name_prefix = "lf-aaaaaaaaaaaaaaaaaaaaa"
+  }
 }

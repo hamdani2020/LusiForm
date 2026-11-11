@@ -19,8 +19,10 @@ templates/
     1.0.0/                        # one directory per template version (immutable once published)
       template.json               # metadata: version, status, review, tool versions
       schema.json                 # parameter schema (JSON Schema)
-      inventory.json              # resource inventory (see below)
-      sandbox-policy.json         # cross-account role policy, derived from inventory
+      inventory.json              # resource inventory, one entry per resource block (see below)
+      iam-catalog.json            # IAM actions each resource type needs (hand-maintained)
+      iam-reference.json          # AWS's facts about those actions (generated, committed)
+      sandbox-policy.json         # cross-account role policy documents, generated from the above
       modules/
         network/    main.tf variables.tf outputs.tf versions.tf
         compute/    main.tf variables.tf outputs.tf versions.tf
@@ -89,14 +91,22 @@ service outside Requirement 1.
 
 ## Resource inventory
 
-`inventory.json` lists every Terraform resource type the template can create, the
-module that owns it, the graph node type it maps to, and a pricing hint. It is the
-single place that answers "what is in the template":
+`inventory.json` lists every Terraform resource block the template can create: the module
+that owns it, its address within the module, its type, how many instances it has, how it
+is represented in the architecture graph, and its pricing hints. It is the single place
+that answers "what is in the template":
 
 - The **renderer** and **diagram** specs use it to build and check the
-  architecture graph and the parity check.
+  architecture graph and the parity check. Each entry gives the graph address
+  (`module.<module>.<address>`), whether the block is a drawn `node`, a `group`
+  container (the VPC and subnets), or `hidden`, and its instance count (`fixed`, a
+  template `parameter` such as `network.az_count`, or `optional` for the HTTPS listener).
 - The **estimate** spec uses the pricing hints to query the AWS Pricing API.
 - The **sandbox policy** is generated from it (see below).
+
+The inventory is per block, not per type, because the graph has one node per resource
+address and the same type appears more than once in a module (three subnet tiers, four
+alarms, four roles). The set of Terraform types, 29 in all, is derived from it.
 
 | Module | Resource types |
 | --- | --- |
@@ -110,12 +120,23 @@ An entry looks like:
 
 ```json
 {
-  "type": "aws_nat_gateway",
   "module": "network",
+  "address": "aws_nat_gateway.this",
+  "type": "aws_nat_gateway",
+  "representation": "node",
   "node": "nat_gateway",
-  "pricing": { "service": "AmazonEC2", "dimension": "nat-gateway-hours" }
+  "instances": { "parameter": "network.az_count" },
+  "pricing": [
+    { "hint": "nat_gateway_hours", "service": "AmazonEC2" },
+    { "hint": "nat_data_processed_gb", "service": "AmazonEC2" }
+  ]
 }
 ```
+
+Pricing hints are the line items of the generation-pipeline estimate table, plus
+`public_ipv4_hours` for the public IPv4 address charge on the NAT gateways' Elastic IPs,
+which that table does not list. A test compares the inventory to the module files, so a
+resource block cannot be added without it.
 
 Route 53, ACM, and S3 are deliberately absent: the customer owns DNS and
 certificates, and the template has no application bucket. (See open questions.)
@@ -207,6 +228,71 @@ version, so any change to the resource types or the policy requires a new versio
 (Requirement 5.4). The sandbox spec attaches this policy to the partner's
 cross-account role. A test asserts the policy covers every inventory type and
 grants nothing else.
+
+### How it is built
+
+Three committed inputs and one generator (`template_tools/sandbox_policy.py`):
+
+- `iam-catalog.json` is hand-maintained. For each Terraform resource type it lists the IAM
+  actions by role (create, write, read, tag), the resource types the actions create or
+  touch, the ARN pattern of each, and a small set of `extras` the provider's own calls do
+  not show (`iam:PassRole`, service-linked roles, the KMS grant and Secrets Manager secret
+  that RDS creates on the caller's behalf). The action lists come from the API calls
+  reachable from each resource in the pinned provider (`terraform-provider-aws` 5.100.0:
+  create, read, update, delete, finders, waiters, and the generated tag helpers), checked by
+  hand against AWS documentation.
+- `iam-reference.json` is AWS's Service Authorization Reference, reduced to the actions and
+  resource types the catalog uses by `scripts/build_iam_reference.py`: which resource types
+  each action accepts and which condition keys apply. The generator and the tests both read
+  this file, so neither needs the network.
+- The generator refuses to emit anything the reference says AWS cannot do. A create must be
+  gateable on `aws:RequestTag`, a change on `aws:ResourceTag`; an action with no resource
+  type can only be `*`, and the catalog must accept that explicitly (`accepted_unscoped`:
+  `ecs:DeregisterTaskDefinition`, and `kms:CreateKey`, which is gated on the request tag).
+
+### Scoping
+
+| Action role | Gate |
+| --- | --- |
+| create | `aws:RequestTag/lusiform-managed = true` on the resource created; `aws:ResourceTag` on existing resources the call uses (the VPC for a subnet) |
+| change, delete | `aws:ResourceTag/lusiform-managed = true` |
+| read | the resource ARNs and the resource tag where AWS supports resource-level permissions, otherwise `*` |
+| tag on create | the request tag, plus `<service>:CreateAction` where AWS offers it (EC2, Elastic Load Balancing, ECS) |
+| remove tags | the resource tag |
+
+Names carry a second gate: every named resource derives its name from `name_prefix`, which
+the modules require to start with `lf-`, so ARNs are scoped to `lf-*` for IAM roles and
+policies, KMS aliases, log groups, alarms, load balancers, target groups, ECS resources, and
+RDS resources. A test checks that the names in the modules match the patterns in the policy.
+Resources identified only by a generated id (EC2, KMS keys, Application Auto Scaling
+targets) rely on the tag.
+
+The policy uses `${aws:PrincipalAccount}` for the account and `*` for the region, so it
+holds no account ID. Only the `aws` partition is supported.
+
+### Size
+
+The full policy is about 18,000 characters, three times IAM's limit for one managed policy
+(6,144, whitespace not counted). `sandbox-policy.json` therefore holds several documents,
+each under 5,900 characters with a service's statements kept together; a role can hold ten
+managed policies by default. The sandbox spec attaches all of them.
+
+### Known gaps
+
+AWS offers no way to scope these, so the policy is broader than the tag and name gates and
+says so (listed in `iam-catalog.json` under `known_gaps`, each with a statement the tests name):
+
+- The VPC's default security group is created untagged, so revoking its rules and tagging it
+  (`DefaultSecurityGroup`) applies to any security group in the account.
+- Application Auto Scaling checks the caller's CloudWatch permissions with calls that carry
+  no alarm name, so alarm writes (`AutoScalingAlarmValidation`) apply to every alarm.
+- `ecs:DeregisterTaskDefinition` applies to every task definition.
+- `lf-*` IAM roles and policies can be created; attachment is limited to two AWS managed
+  policies and `lf-*` policies, but an `lf-*` policy's content is not restricted.
+- Tag-on-create for services without a `CreateAction` key (Logs, RDS, KMS, IAM, CloudWatch,
+  Application Auto Scaling, Secrets Manager) is gated on the request tag only.
+
+The Terraform state bucket is not covered; the sandbox spec must add it.
 
 ## Security posture (how Checkov stays clean)
 
@@ -311,3 +397,26 @@ blocks. The pilot parameter sets must show zero high findings.
     through the provider's `default_tags`, not module inputs, so the sandbox policy's tag
     condition depends on Terraform sending them at create time. Verify at the first real
     apply, together with question 12.
+18. **The sandbox policy has never run against an account.** Its tests prove it is consistent
+    with AWS's reference, not that Terraform succeeds under it. A missing action shows up as an
+    `AccessDenied` at apply, and a fix needs a new template version. Do a full create and
+    destroy in a throwaway account before the pilot. The assumptions most likely to need a fix
+    (all listed in `iam-catalog.json`): `${aws:PrincipalAccount}` inside `Resource` ARNs;
+    Application Auto Scaling's permission check on `RegisterScalableTarget` and
+    `PutScalingPolicy`; the secret and KMS grant RDS creates for the managed master password;
+    and delivery of VPC flow logs with the narrow flow log role (question 12).
+19. **Sandbox spec impact.** The policy is several documents (four today), each a managed
+    policy of under 5,900 characters; the role needs all of them. The Terraform state bucket
+    and any region restriction are not in them. `sandbox-deployment/design.md` describes one
+    policy; it needs updating.
+20. **`name_prefix` must start with `lf-`.** The modules enforce it because the sandbox policy
+    scopes ARNs to `lf-*`. The generation spec must derive it that way, for example `lf-`
+    plus the first eight hex characters of the project id.
+21. **Estimate gaps.** The generation-pipeline estimate table has no line for the public IPv4
+    address charge (about $3.65 a month per NAT gateway, plus the load balancer's addresses),
+    which the inventory now hints as `public_ipv4_hours`. The RDS-managed secret (about $0.40
+    a month) and the four CloudWatch alarms have no hint; they are small.
+22. **Graph representation is a proposal.** The inventory marks the VPC and subnets as groups
+    and eight resource kinds as nodes, matching the diagram spec's icon list. If the diagram
+    spec wants other nodes drawn, that changes `inventory.json` and so needs a new template
+    version.

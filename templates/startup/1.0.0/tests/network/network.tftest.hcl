@@ -4,10 +4,10 @@
 mock_provider "aws" {}
 
 variables {
-  name_prefix              = "demo-app"
+  name_prefix              = "lf-demo"
   availability_zones       = ["us-east-1a", "us-east-1b"]
-  flow_log_destination_arn = "arn:aws:logs:us-east-1:000000000000:log-group:/vpc/demo-app-flow-logs"
-  flow_log_role_arn        = "arn:aws:iam::000000000000:role/demo-app-vpc-flow-logs"
+  flow_log_destination_arn = "arn:aws:logs:us-east-1:000000000000:log-group:/vpc/lf-demo-flow-logs"
+  flow_log_role_arn        = "arn:aws:iam::000000000000:role/lf-demo-vpc-flow-logs"
 }
 
 run "two_zones_have_two_nat_gateways_and_all_subnets" {
@@ -215,4 +215,35 @@ run "rejects_a_bad_name_prefix" {
   }
 
   expect_failures = [var.name_prefix]
+}
+
+run "rejects_a_name_prefix_without_the_lf_prefix" {
+  command = plan
+
+  variables {
+    az_count    = 2
+    name_prefix = "demo-app"
+  }
+
+  expect_failures = [var.name_prefix]
+}
+
+run "rejects_a_name_prefix_longer_than_24_characters" {
+  command = plan
+
+  variables {
+    az_count    = 2
+    name_prefix = "lf-aaaaaaaaaaaaaaaaaaaaaa"
+  }
+
+  expect_failures = [var.name_prefix]
+}
+
+run "accepts_a_24_character_name_prefix" {
+  command = plan
+
+  variables {
+    az_count    = 2
+    name_prefix = "lf-aaaaaaaaaaaaaaaaaaaaa"
+  }
 }
