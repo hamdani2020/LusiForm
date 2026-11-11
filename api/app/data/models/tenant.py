@@ -9,9 +9,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 
 from app.data.models.base import (
     Base,
-    PartnerStatus,
-    Role,
-    UserStatus,
     created_at_col,
     in_check,
     partner_fk,
@@ -19,6 +16,7 @@ from app.data.models.base import (
     updated_at_col,
     uuid_pk,
 )
+from app.enums import PartnerStatus, Role, UserStatus
 
 
 class Partner(Base):

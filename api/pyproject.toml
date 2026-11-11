@@ -8,6 +8,7 @@ dependencies = [
     "fastapi==0.120.0",
     "lusiform-common",
     "psycopg[binary]==3.2.11",
+    "pyjwt[crypto]==2.15.1",
     "sqlalchemy==2.0.44",
     "uvicorn==0.38.0",
 ]

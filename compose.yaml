@@ -1,12 +1,17 @@
 # Lusiform local development stack. See .kiro/steering/docker.md.
 name: lusiform
 
-x-python-env: &python-env
+# AWS settings shared by api and worker (LocalStack locally; dummy credentials).
+x-aws-env: &aws-env
   ENVIRONMENT: local
   AWS_REGION: ${AWS_REGION:-us-east-1}
   AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:?set AWS_ACCESS_KEY_ID in .env}
   AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:?set AWS_SECRET_ACCESS_KEY in .env}
   AWS_ENDPOINT_URL: http://localstack:4566
+
+# api and migrate only. The worker has no tenant database access (security.md).
+x-python-env: &python-env
+  <<: *aws-env
   DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:?set POSTGRES_USER in .env}:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@db:5432/${POSTGRES_DB:?set POSTGRES_DB in .env}
 
 services:
@@ -71,6 +76,10 @@ services:
     environment:
       <<: *python-env
       SERVICE_NAME: lusiform-api
+      # Cognito (real pool; not emulated locally). Unset means protected routes return 503.
+      COGNITO_REGION: ${COGNITO_REGION:-}
+      COGNITO_USER_POOL_ID: ${COGNITO_USER_POOL_ID:-}
+      COGNITO_APP_CLIENT_ID: ${COGNITO_APP_CLIENT_ID:-}
     ports:
       - "8000:8000"
     volumes:
@@ -98,8 +107,11 @@ services:
       args:
         BUILD_DNS: ${BUILD_DNS:-}
     environment:
-      <<: *python-env
+      <<: *aws-env
       SERVICE_NAME: lusiform-worker
+      # Created by docker/localstack/init-aws.sh. The worker never gets DATABASE_URL.
+      JOB_QUEUE_NAME: lusiform-jobs-local
+      ARTIFACT_BUCKET: lusiform-artifacts-local
     volumes:
       - ./worker:/app/worker
       - ./common:/app/common
@@ -118,6 +130,11 @@ services:
         BUILD_DNS: ${BUILD_DNS:-}
     # Re-sync dependencies on start in case the node_modules volume is stale.
     command: ["sh", "-c", "pnpm install --frozen-lockfile --prefer-offline --store-dir /app/node_modules/.pnpm-store && pnpm dev"]
+    environment:
+      # Cognito hosted login (public app client, PKCE). Not secrets. Unset shows a
+      # "sign-in is not configured" screen instead of redirecting.
+      VITE_COGNITO_DOMAIN: ${VITE_COGNITO_DOMAIN:-}
+      VITE_COGNITO_CLIENT_ID: ${VITE_COGNITO_CLIENT_ID:-}
     ports:
       - "5173:5173"
     volumes:

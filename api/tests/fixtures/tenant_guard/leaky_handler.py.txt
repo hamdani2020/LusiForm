@@ -1,0 +1,21 @@
+"""FIXTURE (not real code): a handler that bypasses the repository layer on purpose.
+
+Stored as .txt so ruff, mypy and pytest never treat it as part of the codebase.
+The guard must flag every marked line.
+"""
+
+import uuid
+
+from fastapi import APIRouter
+from sqlalchemy import select  # VIOLATION database-import
+from sqlalchemy.orm import Session  # VIOLATION database-import
+
+from app.data.models import Project  # VIOLATION orm-models-import
+
+router = APIRouter()
+
+
+@router.get("/api/leaky/{project_id}")
+def leaky(project_id: uuid.UUID, session: Session) -> dict[str, str]:
+    row = session.execute(select(Project).where(Project.id == project_id)).scalar_one()  # VIOLATION sql-execution
+    return {"name": row.name}

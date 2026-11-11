@@ -53,6 +53,7 @@ blocks export and sandbox deployment, with no bypass.
 
 ## infra/ (the platform itself)
 
-- Reviewed like any other code. Separate `dev`, `pilot`, and `prod`.
+- Reviewed like any other code. Two cloud environments, `staging` and `prod`.
+  Development is local (Docker Compose with LocalStack), never a cloud environment.
 - This is distinct from `templates/`. Platform infra runs Lusiform; templates are
   what Lusiform generates for customers.

@@ -108,8 +108,8 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
       column holds a secret value.
     - _Requirements: 3.3, 3.4, 3.6, 3.7, 3.8_
 
-- [ ] 4. Implement the repository layer
-  - [ ] 4.1 Create the `RequestContext` type and repository base
+- [x] 4. Implement the repository layer
+  - [x] 4.1 Create the `RequestContext` type and repository base
     - Frozen `RequestContext` (user id, partner id, roles, request id).
     - A `Repository` base that takes a context and a private session and adds
       `WHERE partner_id = ctx.partner_id` to every query on tenant tables. There
@@ -119,11 +119,11 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
     - Session factory is private to the data package; handlers never receive a
       raw session.
     - _Requirements: 4.1, 4.2_
-  - [ ] 4.2 Implement a uniform `NotFound` behavior
+  - [x] 4.2 Implement a uniform `NotFound` behavior
     - Not-found and cross-partner lookups raise the same `NotFound`, which the API
       maps to 404 without disclosing existence.
     - _Requirements: 4.3_
-  - [ ] 4.3 Implement repositories for the foundation entities
+  - [x] 4.3 Implement repositories for the foundation entities
     - `partners` (operator only), `users`, `user_roles`, `projects`,
       `intake_drafts`, and `audit_events` (insert only).
     - Immutable and append-only repositories expose `add` and read methods only;
@@ -131,18 +131,18 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
     - Other tables get repositories in the specs that use them; the base and
       guards are in place now.
     - _Requirements: 3.6, 3.7, 4.1_
-  - [ ] 4.4 Write unit tests for the repository layer
+  - [x] 4.4 Write unit tests for the repository layer
     - Partner scoping on every read and write, `NotFound` on cross-partner
       access, and that immutable repositories offer no mutation methods.
     - _Requirements: 4.1, 4.2, 4.3, 3.6, 3.7_
 
-- [ ] 5. Implement authentication and request context
-  - [ ] 5.1 Implement JWT verification against Cognito
+- [x] 5. Implement authentication and request context
+  - [x] 5.1 Implement JWT verification against Cognito
     - Validate signature using the Cognito JWKS (cached, refreshed on key
       rotation), and check `iss`, audience/client id, and `exp`.
     - Return 401 for missing, expired, or invalid tokens.
     - _Requirements: 2.2, 2.4_
-  - [ ] 5.2 Implement the `get_request_context` dependency
+  - [x] 5.2 Implement the `get_request_context` dependency
     - From the verified `sub`, load the `users` row and `user_roles` and build the
       `RequestContext`. Roles come from the database, never from client claims.
     - Return 403 when the user has no active record, or the partner is suspended,
@@ -150,123 +150,128 @@ commands in `.kiro/steering/tech.md` as each package lands (Requirement 1.5).
     - Apply the dependency to every router except `/api/health` and the auth
       callback.
     - _Requirements: 2.2, 2.3, 2.5, 5.3_
-  - [ ] 5.3 Implement `require_roles` and the admin/operator routers
+  - [x] 5.3 Implement `require_roles` and the admin/operator routers
     - `require_roles(*roles)` dependency factory. Admin routers require
       `partner_admin` or `platform_operator`; operator-only routers require
       `platform_operator`. Return 403 otherwise.
     - Add a minimal `GET /api/me` returning the caller's id, partner, and roles
       to prove the chain end to end.
     - _Requirements: 5.1, 5.2, 5.3_
-  - [ ] 5.4 Write auth unit and integration tests
+  - [x] 5.4 Write auth unit and integration tests
     - JWT cases: valid, expired, bad signature, wrong issuer, wrong audience.
     - Context resolution, role gating, and 403 for inactive or suspended users.
     - Verify that a client-supplied role value has no effect.
     - _Requirements: 2.2, 2.3, 2.5, 5.1, 5.2, 5.3_
 
-- [ ] 6. Implement audit and cross-partner access recording
-  - [ ] 6.1 Build the audit helper
+- [x] 6. Implement audit and cross-partner access recording
+  - [x] 6.1 Build the audit helper
     - Append an `audit_events` row in the same transaction as the write it
       records, with actor, partner, action, target type and id, and before/after
       JSON.
     - _Requirements: 6.1_
-  - [ ] 6.2 Add the operator cross-partner router and its audit
+  - [x] 6.2 Add the operator cross-partner router and its audit
     - A separate router prefix for platform operator cross-partner reads that
       always writes an `audit_events` row for the access.
     - Start with `GET /api/admin/partners` as the first operator route.
     - _Requirements: 4.4, 5.2, 6.1_
-  - [ ] 6.3 Write audit tests
+  - [x] 6.3 Write audit tests
     - Assert admin writes append audit rows atomically with the write, that
       operator cross-partner access is audited, and that audit rows cannot be
       updated or deleted.
     - _Requirements: 6.1, 4.4, 3.7_
 
-- [ ] 7. Build the tenant isolation test suite
-  - [ ] 7.1 Create the two-partner fixtures
+- [x] 7. Build the tenant isolation test suite
+  - [x] 7.1 Create the two-partner fixtures
     - Testcontainers Postgres, migrated to head. Seed partners A and B, each with
       users in each role and rows across the tenant tables that exist so far.
     - _Requirements: 4.6_
-  - [ ] 7.2 Write the table-driven isolation tests
+  - [x] 7.2 Write the table-driven isolation tests
     - Enumerate tenant-scoped endpoints; for each, assert B requesting A's
       resource gets 404 and that a write by B never touches A's rows. New
       endpoints must be added to the table to be covered.
     - Add a test that fails if a registered tenant-scoped route is missing from the
       table, so coverage cannot silently lapse.
     - _Requirements: 4.3, 4.6, NFR 3_
-  - [ ] 7.3 Wire the suite into CI as its own job
+  - [x] 7.3 Wire the suite into CI as its own job
     - The job must pass for the pipeline to pass.
     - _Requirements: 4.6, 1.6_
 
-- [ ] 8. Add the tenant-access lint guard
-  - [ ] 8.1 Implement the guard
+- [x] 8. Add the tenant-access lint guard
+  - [x] 8.1 Implement the guard
     - An AST-based check, run in CI, that fails the build when SQLAlchemy session
       execution or ORM model imports appear outside the repository package.
       Allowlist the repository package and migrations.
     - _Requirements: 4.5_
-  - [ ] 8.2 Prove the guard works
+  - [x] 8.2 Prove the guard works
     - Add a test fixture containing a deliberate violation and assert the guard
       flags it; assert the real codebase is clean.
     - Wire the guard into CI.
     - _Requirements: 4.5, 1.6_
 
-- [ ] 9. Build the web authentication shell
-  - [ ] 9.1 Implement the Cognito hosted-login flow in `web/`
+- [x] 9. Build the web authentication shell
+  - [x] 9.1 Implement the Cognito hosted-login flow in `web/`
     - Redirect unauthenticated users to the hosted login, handle the callback
       code exchange, keep tokens in memory with refresh through the Cognito flow,
       and store no long-lived secret in the browser.
     - Attach `Authorization: Bearer` to API calls.
     - _Requirements: 2.1, 2.4, 2.6_
-  - [ ] 9.2 Build the authenticated app shell
+  - [x] 9.2 Build the authenticated app shell
     - Layout with the "Lusiform" brand, the Projects navigation, and the signed-in
       user's name and role, matching the Sign In and Projects shell designs in the
       Stitch project. There is no workspace picker: a user belongs to one partner
       (see the `agent-and-admin` spec).
+    - Stitch references used: Sign In `5e604a130e1b48d5aa941a4e5e2ae5b5`, Public
+      Landing Page `45e2ea5912734edea4fd268a5abc551f` (signed-out page), and Projects
+      (Empty State) `fb84e75b82d242fd8ab028c8f0c08700` (shell). The other "Projects"
+      screens (`361046e0…`, `03e0795b…`) are pre-PRD enterprise mockups (EKS,
+      compliance nav, invented KPIs) and are not references.
     - Show the user from `GET /api/me`. Hide admin navigation unless the user has
       an admin role.
     - _Requirements: 1.3, 2.3_
-  - [ ] 9.3 Write web tests
+  - [x] 9.3 Write web tests
     - An unauthenticated visit redirects to the hosted login; an authenticated
       state renders the shell with the user's name and role; admin navigation is
       hidden for consultants.
     - _Requirements: 2.6, 5.1_
 
-- [ ] 10. Build the worker skeleton
-  - [ ] 10.1 Create the queue-polling loop
+- [x] 10. Build the worker skeleton
+  - [x] 10.1 Create the queue-polling loop
     - Read config from the shared package, poll SQS, and log structured output.
       No job handlers yet; unknown job types are logged and left for later specs.
     - Document the task role boundary: artifact bucket and job queue only, no
       tenant database access.
     - _Requirements: 1.4, 6.2_
-  - [ ] 10.2 Write worker tests
+  - [x] 10.2 Write worker tests
     - Starts, reads config, polls a stubbed queue, and shuts down cleanly. Assert
       the worker package has no dependency on the API's data package.
     - _Requirements: 1.4_
 
-- [ ] 11. Define platform infrastructure stubs
-  - [ ] 11.1 Write Terraform for the foundation resources in `infra/`
+- [x] 11. Define platform infrastructure stubs
+  - [x] 11.1 Write Terraform for the foundation resources in `infra/`
     - Cognito user pool and app client (hosted login, email and password, no
       federation), RDS PostgreSQL with KMS encryption and backups, S3 artifact
       bucket with KMS, SQS job queue, and ECS service definitions for the API and
       worker with separate task roles.
     - Use Terraform `>= 1.10`, pinned providers, and the S3 backend with
-      `use_lockfile = true` (no DynamoDB). Separate `dev`, `pilot`, and `prod`
+      `use_lockfile = true` (no DynamoDB). Separate `staging` and `prod`
       environments.
     - Run `terraform fmt` and `terraform validate`. Do not apply.
     - _Requirements: NFR 1, NFR 2_
-  - [ ] 11.2 Add the operator bootstrap task
+  - [x] 11.2 Add the operator bootstrap task
     - A documented, separate task that creates the first `platform_operator`, so
       migrations stay data-free.
     - _Requirements: 5.2_
 
-- [ ] 12. Final verification
-  - [ ] 12.1 Run the full suite and the guards
+- [x] 12. Final verification
+  - [x] 12.1 Run the full suite and the guards
     - Run lint, type checks, unit tests, migration round trip, the isolation
       suite, and the lint-guard across all packages. All must pass.
     - _Requirements: 1.6, 4.5, 4.6, NFR 3_
-  - [ ] 12.2 Update steering with real commands
+  - [x] 12.2 Update steering with real commands
     - Replace the placeholder in `.kiro/steering/tech.md` with the exact build,
       test, lint, and migration commands that now exist.
     - _Requirements: 1.5_
-  - [ ] 12.3 Confirm the acceptance criteria
+  - [x] 12.3 Confirm the acceptance criteria
     - Walk requirements 1–6 and the non-functional requirements and note which
       test or artifact proves each. Flag anything not covered.
     - _Requirements: all_

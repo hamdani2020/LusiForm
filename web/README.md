@@ -37,3 +37,28 @@ Before compose exists, the same scripts run in a throwaway container:
 docker run --rm -v "$PWD/web":/app -v lusiform_web_nm:/app/node_modules -w /app \
   node:22-alpine sh -c "npm i -g pnpm@12.18.0 && pnpm install --frozen-lockfile && pnpm lint && pnpm test --run && pnpm build"
 ```
+
+## Sign-in
+
+Authentication is the Cognito hosted login, authorization code flow with PKCE, using a
+**public** app client (no client secret). There is no SSO and no self-service sign-up.
+
+- Signed-out visitors see the public landing page (Stitch "Lusiform - Public Landing
+  Page"). Its "Sign in" button goes to the hosted login; there is no sign-up (access is by
+  invitation). The hosted login's own form should be themed to match the Stitch "Sign In"
+  screen; that is Cognito configuration, done with the Cognito Terraform in `infra/`.
+- The callback (`/auth/callback`) exchanges the code for tokens, which are held **in memory
+  only**. Only the one-time PKCE verifier and state sit in `sessionStorage` during the
+  redirect and are removed when the callback is handled. After a reload the user is signed
+  out in the app; "Sign in" goes back through the hosted login, whose own session signs them
+  straight back in without the password.
+- API calls send `Authorization: Bearer <access token>`. A 401 triggers one refresh and a
+  retry; a second 401 starts a new sign-in. A 403 (inactive user, suspended partner) shows
+  an explanation.
+- Roles shown in the UI come from `GET /api/me`, never from the token.
+
+Configure with `VITE_COGNITO_DOMAIN` and `VITE_COGNITO_CLIENT_ID` (see `.env.example`).
+On the app client, allow `http://localhost:5173/auth/callback` as a callback URL and
+`http://localhost:5173/` as a sign-out URL. When unset, the landing page says sign-in is not
+configured and its "Sign in" buttons are disabled. In Compose, the Vite dev server proxies `/api`
+to the `api` service.

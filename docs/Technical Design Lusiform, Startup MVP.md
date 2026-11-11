@@ -268,7 +268,7 @@ All write endpoints accept an `Idempotency-Key` header so retries from the brows
 
 - **Repository:** monorepo with `api/`, `worker/`, `web/`, `templates/`, and `infra/` directories.
 - **CI:** lint, type checks, unit and golden tests, isolation tests, image build and scan.
-- **Infrastructure:** Terraform for the platform itself, reviewed like any other code. Separate `dev`, `pilot`, and `prod` environments.
+- **Infrastructure:** Terraform for the platform itself, reviewed like any other code. Separate `staging` and `prod` environments; development runs locally (Docker Compose with LocalStack).
 - **Deployments:** ECS rolling deployments. Database migrations via Alembic run as a one-off task before the service rolls.
 - **Feature flags:** a simple config flag for the agent, so it can be disabled without a deploy.
 

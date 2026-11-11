@@ -63,13 +63,87 @@ mockups and are out of scope.
 ## Commands
 
 Docker is the main development environment. Every app runs through Docker
-Compose, and every command runs inside a container. See `docker.md` for the
-service layout and the exact commands.
+Compose, and every command runs inside a container, except Terraform, which runs on
+the host. See `docker.md` for the service layout. Use single-run test modes, never
+watch mode. Verify builds and run the relevant checks after every change.
 
-- `web/`: pnpm scripts (dev, build, lint, test), run via `docker compose`.
-- `api/` and `worker/`: Python with `uv`; tests via pytest, run via `docker compose`.
-- Verify builds and run relevant tests after changes. Use single-run test modes,
-  not watch mode.
+Run the stack:
+
+```
+docker compose up --build                      # web :5173, api :8000, db, localstack, worker
+docker compose down                            # stop (keeps volumes)
+```
+
+`common/` (shared config and logging; its tools come from the api image):
+
+```
+docker compose run --rm --no-deps -w /app/common api ruff check .
+docker compose run --rm --no-deps -w /app/common api ruff format --check .
+docker compose run --rm --no-deps -w /app/common api mypy .
+docker compose run --rm --no-deps -w /app/common api pytest -q
+```
+
+`api/` (pytest needs the compose `db`: migration, schema, and isolation tests create
+throwaway databases on it):
+
+```
+docker compose run --rm --no-deps api uv run ruff check .
+docker compose run --rm --no-deps api uv run ruff format --check .
+docker compose run --rm --no-deps api uv run mypy .
+docker compose run --rm api uv run pytest                        # everything
+docker compose run --rm api uv run pytest tests/isolation        # tenant isolation suite
+docker compose run --rm api uv run pytest tests/test_migrations.py  # upgrade/downgrade round trip
+docker compose run --rm --no-deps api python -m tools.check_tenant_access app  # tenant-access guard
+```
+
+`worker/`:
+
+```
+docker compose run --rm --no-deps worker uv run ruff check .
+docker compose run --rm --no-deps worker uv run ruff format --check .
+docker compose run --rm --no-deps worker uv run mypy .
+docker compose run --rm --no-deps worker uv run pytest
+```
+
+`web/`:
+
+```
+docker compose run --rm --no-deps web pnpm lint
+docker compose run --rm --no-deps web pnpm typecheck
+docker compose run --rm --no-deps web pnpm test --run
+docker compose run --rm --no-deps web pnpm build
+```
+
+Database (Alembic; migrations stay data-free):
+
+```
+docker compose run --rm migrate                                  # alembic upgrade head
+docker compose run --rm migrate alembic current
+docker compose run --rm migrate alembic revision --autogenerate -m "message"
+docker compose run --rm api python -m app.bootstrap_operator \
+  --partner-name Lusiform --email you@example.com --cognito-sub SUB   # first platform operator
+```
+
+`infra/` (Terraform on the host; two cloud environments, `staging` and `prod`):
+
+```
+terraform -chdir=infra fmt -check -recursive
+terraform -chdir=infra/envs/staging init -backend=false && terraform -chdir=infra/envs/staging validate
+cd infra/modules/<module> && terraform init -backend=false && terraform test   # mocked AWS
+terraform -chdir=infra/envs/staging plan -out=plan.tfplan        # real AWS; review, then apply the saved plan
+```
+
+Dependencies:
+
+```
+docker compose run --rm api uv add <pkg>==<version>              # worker: same, with worker
+docker compose run --rm web pnpm add -E <pkg>@<version>
+docker compose build <service>                                   # after any dependency change
+```
+
+CI (`.github/workflows/ci.yml`) runs the same commands: one job per package, plus the
+tenant isolation suite, the tenant-access guard, and `infra` (fmt, validate, module
+tests; never plan or apply).
 
 ## Dependencies
 

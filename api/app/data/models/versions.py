@@ -20,8 +20,6 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.data.models.base import (
     SHA256_RE,
     Base,
-    JobStatus,
-    TemplateStatus,
     created_at_col,
     in_check,
     partner_fk,
@@ -29,6 +27,7 @@ from app.data.models.base import (
     updated_at_col,
     uuid_pk,
 )
+from app.enums import JobStatus, TemplateStatus
 
 
 class TemplateVersion(Base):

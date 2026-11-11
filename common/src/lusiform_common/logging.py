@@ -5,7 +5,6 @@ Sensitive keys and intake free text are redacted; they must never reach logs.
 """
 
 import logging
-import sys
 from collections.abc import Mapping, MutableMapping
 from typing import Any
 
@@ -85,7 +84,10 @@ def configure_logging(service_name: str, level: str = "INFO") -> None:
     structlog.configure(
         processors=processors,
         wrapper_class=structlog.make_filtering_bound_logger(logging.getLevelName(level)),
-        logger_factory=structlog.PrintLoggerFactory(file=sys.stdout),
+        # No explicit file: PrintLogger resolves sys.stdout when each logger is created,
+        # so output follows stream redirection (tests, container runtimes) instead of a
+        # stream captured at configure time.
+        logger_factory=structlog.PrintLoggerFactory(),
         cache_logger_on_first_use=False,
     )
     clear_contextvars()
