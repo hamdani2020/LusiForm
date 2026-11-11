@@ -1,0 +1,106 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Lusiform startup template 1.0.0 parameters",
+  "description": "Parameters a consultant may adjust. Parameters are grouped by the module that owns them and addressed as <module>.<name>, for example compute.min_tasks. The region is a project input, not a template parameter. Cross-field rules are listed in x-rules.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["network", "compute", "database", "monitoring"],
+  "properties": {
+    "network": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["az_count"],
+      "properties": {
+        "az_count": {
+          "title": "Availability Zones",
+          "description": "Zones the workload runs in. Subnets always exist in two zones; this sets NAT gateways, task placement, and whether the database has a standby.",
+          "type": "integer",
+          "enum": [1, 2],
+          "default": 2
+        }
+      }
+    },
+    "compute": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["task_size", "min_tasks", "max_tasks"],
+      "properties": {
+        "task_size": {
+          "title": "Task size",
+          "description": "Fargate vCPU and memory per task.",
+          "type": "string",
+          "enum": ["0.25vcpu-0.5gb", "0.5vcpu-1gb", "1vcpu-2gb", "2vcpu-4gb"],
+          "default": "0.25vcpu-0.5gb"
+        },
+        "min_tasks": {
+          "title": "Minimum tasks",
+          "description": "Desired count at rest and the auto scaling floor.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 10,
+          "default": 2
+        },
+        "max_tasks": {
+          "title": "Maximum tasks",
+          "description": "Auto scaling ceiling. Must be at least the minimum.",
+          "type": "integer",
+          "minimum": 2,
+          "maximum": 20,
+          "default": 6
+        }
+      }
+    },
+    "database": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["instance_class", "storage_gb", "backup_retention_days"],
+      "properties": {
+        "instance_class": {
+          "title": "Instance class",
+          "description": "RDS PostgreSQL instance class.",
+          "type": "string",
+          "enum": ["db.t4g.micro", "db.t4g.small", "db.t4g.medium"],
+          "default": "db.t4g.micro"
+        },
+        "storage_gb": {
+          "title": "Storage (GB)",
+          "description": "Allocated database storage.",
+          "type": "integer",
+          "minimum": 20,
+          "maximum": 1000,
+          "default": 20
+        },
+        "backup_retention_days": {
+          "title": "Backup retention (days)",
+          "description": "Automated backup retention.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 35,
+          "default": 7
+        }
+      }
+    },
+    "monitoring": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["log_retention_days"],
+      "properties": {
+        "log_retention_days": {
+          "title": "Log retention (days)",
+          "description": "CloudWatch log group retention. The values the Architecture stage offers; all are valid CloudWatch retention periods.",
+          "type": "integer",
+          "enum": [7, 14, 30, 90, 365],
+          "default": 30
+        }
+      }
+    }
+  },
+  "x-rules": [
+    {
+      "id": "max_tasks_gte_min_tasks",
+      "left": "compute.max_tasks",
+      "operator": ">=",
+      "right": "compute.min_tasks"
+    }
+  ]
+}

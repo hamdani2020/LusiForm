@@ -1,0 +1,20 @@
+{
+  "_comment": "Allowed values and ranges the Architecture-stage screen presents. Read from the Stitch screen Architecture Stage - Default (project 18075726235522465175, screen a626b2e6f3194136b4f3475f74f0e61e) on 2026-11-11: task size, instance class, AZ count, log retention options and the min/max/storage/backup ranges. The screen does not show defaults (its preselected values are sample project values), so the default fields come from .kiro/specs/startup-template/design.md. When the screen changes, update this file and schema.json together; test_schema.py fails if they disagree.",
+  "network.az_count": { "enum": [1, 2], "default": 2 },
+  "compute.task_size": {
+    "enum": ["0.25vcpu-0.5gb", "0.5vcpu-1gb", "1vcpu-2gb", "2vcpu-4gb"],
+    "default": "0.25vcpu-0.5gb"
+  },
+  "compute.min_tasks": { "minimum": 1, "maximum": 10, "default": 2 },
+  "compute.max_tasks": { "minimum": 2, "maximum": 20, "default": 6 },
+  "database.instance_class": {
+    "enum": ["db.t4g.micro", "db.t4g.small", "db.t4g.medium"],
+    "default": "db.t4g.micro"
+  },
+  "database.storage_gb": { "minimum": 20, "maximum": 1000, "default": 20 },
+  "database.backup_retention_days": { "minimum": 1, "maximum": 35, "default": 7 },
+  "monitoring.log_retention_days": {
+    "enum": [7, 14, 30, 90, 365],
+    "default": 30
+  }
+}

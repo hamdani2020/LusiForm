@@ -77,7 +77,7 @@ bounds below match the validated Architecture-stage screen.
 | `database.storage_gb` | database | integer | 20–1000 | 20 |
 | `database.backup_retention_days` | database | integer | 1–35 | 7 |
 | `network.az_count` | network | enum | 1, 2 | 2 |
-| `monitoring.log_retention_days` | monitoring | enum | CloudWatch-valid values from 7 to 365 | 30 |
+| `monitoring.log_retention_days` | monitoring | enum | `7`, `14`, `30`, `90`, `365` | 30 |
 
 Cross-field rules live in the schema (`max_tasks >= min_tasks`). Intake-derived
 fields (region, workload) are not template parameters; the region is a project

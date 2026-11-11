@@ -26,19 +26,19 @@ against any AWS account in this spec; stop at `fmt`, `validate`, `tflint`, and
       tests. This job must pass for the pipeline to pass.
     - _Requirements: 4.1, 4.2, 4.3, 4.4, 4.6_
 
-- [ ] 2. Define the parameter schema
-  - [ ] 2.1 Write `schema.json`
+- [x] 2. Define the parameter schema
+  - [x] 2.1 Write `schema.json`
     - Define the eight parameters from `design.md` with type, allowed values or
       range, default, and owning module. Include the cross-field rule
       `max_tasks >= min_tasks`.
     - Do not add any parameter that selects an out-of-scope service, a free-form
       CIDR, a NAT mode, or a region choice beyond a single region.
     - _Requirements: 2.1, 2.2, 2.5_
-  - [ ] 2.2 Implement schema validation and error messages
+  - [x] 2.2 Implement schema validation and error messages
     - A small validator that rejects out-of-range or wrong-type values with a
       message naming the parameter and the bound.
     - _Requirements: 2.3_
-  - [ ] 2.3 Write schema tests
+  - [x] 2.3 Write schema tests
     - Defaults, minimums, and maximums pass; each invalid value is rejected with
       the expected message; the cross-field rule is enforced.
     - Add a check that the allowed values match the ones shown on the
