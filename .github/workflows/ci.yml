@@ -163,7 +163,16 @@ jobs:
         run: cp .env.example .env
       - name: Build worker dev image
         run: docker compose build worker
-      # pytest exits non-zero when it collects nothing, so an empty suite cannot pass.
+      # The template tooling and tests are Python; lint them with the worker's rules.
+      - name: Ruff lint
+        run: docker compose run --rm --no-deps -w /app/templates worker uv run --frozen --project /app/worker ruff check --config /app/worker/pyproject.toml .
+      - name: Ruff format check
+        run: docker compose run --rm --no-deps -w /app/templates worker uv run --frozen --project /app/worker ruff format --config /app/worker/pyproject.toml --check .
+      - name: mypy
+        run: docker compose run --rm --no-deps -w /app/templates worker uv run --frozen --project /app/worker mypy --config-file /app/worker/pyproject.toml template_tools tests
+      # Runs fmt, init, validate, and mocked terraform test for every module with the pinned
+      # Terraform 1.10.5, plus the schema, scope, and tool-pin checks. The first run downloads
+      # the AWS provider. pytest exits non-zero when it collects nothing.
       - name: Template suite
         run: templates/scripts/run-tests.sh -q
 

@@ -45,38 +45,38 @@ against any AWS account in this spec; stop at `fmt`, `validate`, `tflint`, and
       Architecture-stage designs so the UI and the renderer cannot drift.
     - _Requirements: 2.3, 2.4_
 
-- [ ] 3. Build the network module
-  - [ ] 3.1 Implement VPC, subnets, and routing
+- [x] 3. Build the network module
+  - [x] 3.1 Implement VPC, subnets, and routing
     - One VPC; public, private application, and isolated data subnets in two AZs
       always; internet gateway; route tables; no internet route for data subnets.
     - _Requirements: 1.2, 1.4_
-  - [ ] 3.2 Implement NAT, default security group, and flow logs
+  - [x] 3.2 Implement NAT, default security group, and flow logs
     - A NAT gateway per active AZ driven by `az_count`; restrict the default
       security group; enable VPC flow logs to CloudWatch with KMS.
     - _Requirements: 1.2, 4.5_
-  - [ ] 3.3 Expose outputs and write module tests
+  - [x] 3.3 Expose outputs and write module tests
     - Outputs: VPC id, subnet ids by tier, NAT count. Test `az_count = 1` and
       `az_count = 2` produce the expected NAT and subnet counts.
     - _Requirements: 1.2_
 
-- [ ] 4. Build the monitoring module
-  - [ ] 4.1 Implement the KMS-encrypted log group and alarms
+- [x] 4. Build the monitoring module
+  - [x] 4.1 Implement the KMS-encrypted log group and alarms
     - A CloudWatch log group encrypted with a customer-managed KMS key (rotation
       on), retention from `log_retention_days`, and alarms for ALB 5xx, ECS CPU,
       RDS CPU, and RDS free storage.
     - _Requirements: 1.1, 4.5_
 
-- [ ] 5. Build the IAM module
-  - [ ] 5.1 Implement task execution and task roles
+- [x] 5. Build the IAM module
+  - [x] 5.1 Implement task execution and task roles
     - ECS task execution role with the managed execution policy, and a task role
       with only declared permissions. No wildcard actions or resources.
     - _Requirements: 1.1, 4.5_
-  - [ ] 5.2 Add an IAM policy lint test
+  - [x] 5.2 Add an IAM policy lint test
     - Fail on any `*` action or `*` resource in the module's policies.
     - _Requirements: 4.5_
 
-- [ ] 6. Build the database module
-  - [ ] 6.1 Implement RDS PostgreSQL 16
+- [x] 6. Build the database module
+  - [x] 6.1 Implement RDS PostgreSQL 16
     - Subnet group in the data subnets, parameter group, customer-managed KMS key
       for storage, no public access, backups from `backup_retention_days`,
       `multi_az = (az_count == 2)`, storage from `storage_gb` with autoscaling to
@@ -84,17 +84,17 @@ against any AWS account in this spec; stop at `fmt`, `validate`, `tflint`, and
     - Deletion protection and final snapshot as variables so sandbox teardown can
       destroy the instance.
     - _Requirements: 1.6, 4.5_
-  - [ ] 6.2 Implement the database security group
+  - [x] 6.2 Implement the database security group
     - Accept PostgreSQL only from the compute tasks' security group.
     - _Requirements: 4.5_
 
-- [ ] 7. Build the compute module
-  - [ ] 7.1 Implement ECS Fargate and the task definition
+- [x] 7. Build the compute module
+  - [x] 7.1 Implement ECS Fargate and the task definition
     - Cluster with Container Insights, task definition sized by `task_size`,
       service in private subnets, placement driven by `az_count`, and the
       container image as an input variable with no account-specific URL.
     - _Requirements: 1.5, 3.3_
-  - [ ] 7.2 Implement the ALB and auto scaling
+  - [x] 7.2 Implement the ALB and auto scaling
     - Public ALB with a target group and listener, security groups limiting task
       ingress to the ALB, drop-invalid-headers on, and Application Auto Scaling
       between `min_tasks` and `max_tasks` on CPU.

@@ -41,6 +41,8 @@ build/
 
 # Terraform
 **/.terraform/
+# Shared provider download cache used by the template tests (templates/tests)
+templates/.tf-plugin-cache/
 *.tfstate
 *.tfstate.*
 *.tfplan

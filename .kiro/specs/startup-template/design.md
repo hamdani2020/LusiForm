@@ -22,11 +22,14 @@ templates/
       inventory.json              # resource inventory (see below)
       sandbox-policy.json         # cross-account role policy, derived from inventory
       modules/
-        network/    main.tf variables.tf outputs.tf
-        compute/    main.tf variables.tf outputs.tf
-        database/   main.tf variables.tf outputs.tf
-        monitoring/ main.tf variables.tf outputs.tf
-        iam/        main.tf variables.tf outputs.tf
+        network/    main.tf variables.tf outputs.tf versions.tf
+        compute/    main.tf variables.tf outputs.tf versions.tf
+        database/   main.tf variables.tf outputs.tf versions.tf
+        monitoring/ main.tf variables.tf outputs.tf versions.tf
+        iam/        main.tf variables.tf outputs.tf versions.tf
+      tests/                      # Terraform tests per module, outside modules/ so they are never rendered
+        network/ compute/ database/ monitoring/ iam/    (*.tftest.hcl)
+        .terraform.lock.hcl       # provider lock used when module tests run
       root/                       # templates for the rendered root project
         main.tf.tmpl
         variables.tf.tmpl
@@ -264,3 +267,31 @@ blocks. The pilot parameter sets must show zero high findings.
    key. Default: one per module for blast-radius separation.
 6. **Reviewer and record.** Who the AWS-experienced reviewer is, and where the
    review record is stored (`notes_ref`).
+7. **Deletion protection and sandbox teardown.** The database and load balancer default to
+   `deletion_protection = true` and a final snapshot, which is the safe default for a
+   handed-off project. A `terraform destroy` fails until those are turned off and applied.
+   The sandbox spec must set `deletion_protection = false` (and may set
+   `skip_final_snapshot = true`) for teardown. The final snapshot has a fixed name, so a
+   second destroy of the same project name fails until the first snapshot is deleted.
+8. **RDS engine version.** Pinned to the major version (`"16"`); RDS picks the current minor
+   and applies minor upgrades. Pinning a minor risks naming a version AWS has retired.
+9. **RDS log exports are off.** Enabling `enabled_cloudwatch_logs_exports` makes RDS create
+   unencrypted log groups that Terraform does not manage and that survive teardown.
+   Query logging is still configured in the parameter group. Revisit if the reviewer wants
+   exports with pre-created, KMS-encrypted groups.
+10. **ALB access logs are off.** They need an S3 bucket, which the template deliberately does
+    not have. Expect Checkov to report this (the validation spec's severity map decides if
+    it blocks).
+11. **Plan-time lookups.** The monitoring and iam modules call `aws_caller_identity` (one local
+    STS call) so key policies and trust policies can name the account without an account ID
+    in the files. This is the one lookup NFR 1 could be read to forbid; confirm it is acceptable.
+12. **Flow log role permissions are unverified.** The role is limited to the one flow log group
+    (`CreateLogStream`, `PutLogEvents`, `DescribeLogStreams`). AWS documentation lists
+    `CreateLogGroup` and `DescribeLogGroups` on `*`. The narrower policy is the intended
+    design, but it can only be confirmed by a real apply, which this spec never does. Check
+    during the first sandbox apply.
+13. **Availability Zone names.** The network module takes the two zone names as an input
+    (the root passes `<region>a` and `<region>b`) instead of looking them up, to keep
+    rendering deterministic. Some accounts do not have `a` and `b` in every region.
+14. **Egress is narrow.** Tasks may reach HTTPS on the internet (through NAT) and PostgreSQL
+    in the VPC only. A workload that needs another outbound port needs a new template version.
