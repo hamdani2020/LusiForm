@@ -11,10 +11,28 @@ locals {
   max_storage_gb = var.storage_gb * 2
 }
 
+# One local STS call at plan time, so the key policy can name the account without an account
+# ID in the files.
+data "aws_caller_identity" "current" {}
+data "aws_partition" "current" {}
+
 resource "aws_kms_key" "database" {
   description             = "${var.name_prefix} database storage encryption"
   enable_key_rotation     = true
   deletion_window_in_days = 7
+
+  # The policy AWS applies by default, written out: the account administers the key and can
+  # delegate its use through IAM. RDS uses the key through grants created by the caller.
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Sid       = "EnableAccountAdministration"
+      Effect    = "Allow"
+      Principal = { AWS = "arn:${data.aws_partition.current.partition}:iam::${data.aws_caller_identity.current.account_id}:root" }
+      Action    = "kms:*"
+      Resource  = "*"
+    }]
+  })
 
   tags = merge(var.tags, { Name = "${var.name_prefix}-database-key" })
 }

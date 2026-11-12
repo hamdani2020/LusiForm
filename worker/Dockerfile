@@ -25,6 +25,17 @@ COPY worker/pyproject.toml worker/uv.lock worker/.python-version ./
 RUN if [ -n "$BUILD_DNS" ]; then echo "nameserver $BUILD_DNS" > /etc/resolv.conf; fi \
     && uv sync --frozen
 
+# Pinned tflint AWS ruleset, installed with tflint's own signature-checking `--init` so
+# tflint never downloads a plugin at run time. The version is also recorded in a template's
+# template.json, and a test fails if the two drift.
+ARG TFLINT_RULESET_AWS_VERSION=0.50.0
+ENV TFLINT_PLUGIN_DIR=/opt/tflint-plugins
+RUN if [ -n "$BUILD_DNS" ]; then echo "nameserver $BUILD_DNS" > /etc/resolv.conf; fi \
+    && mkdir -p "$TFLINT_PLUGIN_DIR" /tmp/tflint-init \
+    && printf 'plugin "aws" {\n  enabled = true\n  version = "%s"\n  source  = "github.com/terraform-linters/tflint-ruleset-aws"\n}\n' "$TFLINT_RULESET_AWS_VERSION" > /tmp/tflint-init/.tflint.hcl \
+    && tflint --init --chdir /tmp/tflint-init \
+    && rm -rf /tmp/tflint-init
+
 FROM base AS dev
 CMD ["python", "-m", "app.main"]
 

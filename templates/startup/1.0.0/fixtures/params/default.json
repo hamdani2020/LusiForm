@@ -1,0 +1,9 @@
+{
+  "name": "default",
+  "description": "Every parameter at its default. An empty parameter set proves the defaults apply.",
+  "region": "us-east-1",
+  "name_prefix": "lf-fix-default",
+  "project_name": "Fixture default",
+  "customer_name": "Example Customer",
+  "parameters": {}
+}

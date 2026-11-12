@@ -131,26 +131,26 @@ against any AWS account in this spec; stop at `fmt`, `validate`, `tflint`, and
       action.
     - _Requirements: 5.4_
 
-- [ ] 10. Build the validation fixtures and tests
-  - [ ] 10.1 Create parameter fixtures
+- [x] 10. Build the validation fixtures and tests
+  - [x] 10.1 Create parameter fixtures
     - Parameter sets: minimum, default, maximum, `az_count` 1, `az_count` 2.
     - _Requirements: 4.1, 4.2, 4.3, 4.4_
-  - [ ] 10.2 Run the four validators against every fixture
+  - [x] 10.2 Run the four validators against every fixture
     - Render each set and run `terraform fmt -check`, `terraform init
       -backend=false` plus `validate`, `tflint`, and `checkov`. Assert all pass
       and zero high-severity findings, using the severity map decided in the
       validation spec (record any assumption in the test).
     - _Requirements: 4.1, 4.2, 4.3, 4.4_
-  - [ ] 10.3 Add the insecure fixture
+  - [x] 10.3 Add the insecure fixture
     - A project with unencrypted RDS, a public database, and a wildcard IAM policy
       that must fail Checkov; assert it fails.
     - _Requirements: 4.6_
-  - [ ] 10.4 Add the credential and account-ID scan
+  - [x] 10.4 Add the credential and account-ID scan
     - Scan all rendered output for access-key patterns, 12-digit account IDs, and
       ARNs containing an account; fail on any hit. Add a note-injection test that
       confirms free-text notes never reach resource names or file names.
     - _Requirements: 3.3, 3.5_
-  - [ ] 10.5 Add determinism and golden tests
+  - [x] 10.5 Add determinism and golden tests
     - Render each fixture twice and compare hashes; compare to stored golden
       output; fail on any difference.
     - _Requirements: 3.1_

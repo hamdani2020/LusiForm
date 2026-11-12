@@ -1,0 +1,14 @@
+{
+  "name": "minimum",
+  "description": "Every parameter at the bottom of its allowed range, in one zone.",
+  "region": "us-east-1",
+  "name_prefix": "lf-fix-minimum",
+  "project_name": "Fixture minimum",
+  "customer_name": "Example Customer",
+  "parameters": {
+    "network": { "az_count": 1 },
+    "compute": { "task_size": "0.25vcpu-0.5gb", "min_tasks": 1, "max_tasks": 2 },
+    "database": { "instance_class": "db.t4g.micro", "storage_gb": 20, "backup_retention_days": 1 },
+    "monitoring": { "log_retention_days": 7 }
+  }
+}

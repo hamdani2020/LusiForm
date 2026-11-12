@@ -27,7 +27,8 @@ templates/
       root/                   Jinja2 templates for the rendered root project (*.tmpl)
       tests/<module>/         Terraform tests (*.tftest.hcl, mocked AWS provider)
       tests/.terraform.lock.hcl  provider lock used when the module tests run
-      fixtures/               params/, golden/, insecure/ used by tests
+      tflint.hcl              tflint config for rendered projects (AWS ruleset, pinned)
+      fixtures/               params/, golden/, insecure/, checkov-accepted.json
   template_tools/             schema validation and sandbox policy generator (standard library only)
   scripts/                    test runner, IAM reference builder
   tests/                      pytest suite for the template
@@ -54,7 +55,7 @@ project wires them together.
 
 Rules the modules follow: AWS provider `~> 5.47` and Terraform `>= 1.10.0`; no
 `timestamp()`, `random_*`, or account-specific values; no credentials; the only data
-sources are `aws_caller_identity` (one local STS call, for the KMS key policy and trust
+sources are `aws_caller_identity` (one local STS call, for the KMS key policies and the trust
 policy conditions), `aws_partition`, and `aws_region`; no IAM wildcard action or bare `*`
 resource.
 
@@ -182,6 +183,44 @@ condition key applies to every action in its statement, so no statement is silen
 The action lists come from the AWS provider's source (version 5.100.0) and AWS
 documentation. The policy has not been run against an account; `iam-catalog.json` lists the
 assumptions that only a real apply can confirm.
+
+## Validation fixtures
+
+`startup/<version>/fixtures/` holds what the validators run against:
+
+- `params/` five named parameter sets: `default` (empty, so every default applies), `minimum`
+  and `maximum` (the ends of every range), and `az1` and `az2` (mid-range sizing in one and
+  two zones). Each also fixes the region, the name prefix, and the display names, so a render
+  depends on nothing else.
+- `golden/<name>/` the rendered root files exactly as the reference renderer writes them, and
+  `manifest.json` with the SHA-256 of every rendered file. Module files are copied unchanged
+  from `modules/`, so their hashes pin them without storing five copies. Any difference fails.
+- `insecure/` a deliberately insecure project (unencrypted public database, wildcard IAM,
+  SSH open to the world). It is never rendered; the tests show Checkov fails it.
+- `checkov-accepted.json` the Checkov findings this template version is allowed to have, with
+  a severity and a reason for each, and the checks that must pass.
+
+Each fixture is run through, in order: `terraform fmt -check`, `terraform init -backend=false`
+then `validate`, tflint with the AWS ruleset, and Checkov. `tflint.hcl` is the tflint
+configuration; the ruleset (version in `template.json`) is installed in the worker image.
+
+Two things about the validators are easy to get wrong:
+
+- **tflint must run with `--recursive`.** Run from the project root with only
+  `--call-module-type=local`, tflint does not inspect the resources inside the modules; an
+  invalid instance class in a module passed cleanly.
+- **Checkov reports no severity.** Open-source Checkov 3.4.3 leaves it empty, so severity is
+  Lusiform's. The rule is fail-closed: a failing check that is not accepted as LOW or MEDIUM
+  is HIGH. `checkov-accepted.json` is the interim map for this template; its `must_pass`
+  groups pin the encryption, public-exposure, and wildcard-IAM checks so they cannot stop
+  running without a test failing.
+
+If you change the template on purpose, regenerate the golden files and review the diff:
+
+```
+docker compose run --rm --no-deps -w /app/templates worker \
+  python tests/update_golden.py startup/1.0.0
+```
 
 ## Running the tests
 

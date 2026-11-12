@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from fixtures import load_fixtures
 from jinja2 import Environment, StrictUndefined, UndefinedError
 from reference_render import (
     CONTEXT_NAMES,
@@ -35,30 +36,10 @@ VERSION_DIRS = sorted(p for p in (TEMPLATES_ROOT / "startup").iterdir() if p.is_
 EXPRESSION = re.compile(r"\{\{(.*?)\}\}", re.DOTALL)
 DOTTED_NAME = re.compile(r"^[a-z_]+(\.[a-z_]+)*$")
 
-# Parameter sets rendered and validated with Terraform. Formal fixtures arrive in task 10.
+# The parameter sets are the template fixtures (fixtures/params/); fmt and validate run on the
+# same projects in test_validators.py.
 PARAM_SETS: dict[str, dict[str, Any]] = {
-    "default": {},
-    "az1": {"network": {"az_count": 1}},
-    "minimum": {
-        "network": {"az_count": 1},
-        "compute": {"task_size": "0.25vcpu-0.5gb", "min_tasks": 1, "max_tasks": 2},
-        "database": {
-            "instance_class": "db.t4g.micro",
-            "storage_gb": 20,
-            "backup_retention_days": 1,
-        },
-        "monitoring": {"log_retention_days": 7},
-    },
-    "maximum": {
-        "network": {"az_count": 2},
-        "compute": {"task_size": "2vcpu-4gb", "min_tasks": 10, "max_tasks": 20},
-        "database": {
-            "instance_class": "db.t4g.medium",
-            "storage_gb": 1000,
-            "backup_retention_days": 35,
-        },
-        "monitoring": {"log_retention_days": 365},
-    },
+    name: fixture.parameters for name, fixture in load_fixtures(VERSION_DIRS[0]).items()
 }
 
 
@@ -334,57 +315,7 @@ def test_names_do_not_change_any_terraform_file(version_dir: Path) -> None:
     }
 
 
-# --- 8.2 the rendered project passes Terraform -------------------------------------------
-
-
-@pytest.fixture(scope="module")
-def projects(tmp_path_factory: pytest.TempPathFactory) -> dict[tuple[str, str], Path]:
-    """Rendered and initialised projects, shared by the tests below."""
-    return {}
-
-
-def _project(
-    cache: dict[tuple[str, str], Path],
-    tmp_path_factory: pytest.TempPathFactory,
-    version_dir: Path,
-    set_name: str,
-) -> Path:
-    key = (version_dir.name, set_name)
-    if key not in cache:
-        work = tmp_path_factory.mktemp(f"{version_dir.name}-{set_name}")
-        write_project(render_project(version_dir, PARAM_SETS[set_name]), work)
-        lock = lock_file(version_dir)
-        if lock.is_file():
-            shutil.copy(lock, work / ".terraform.lock.hcl")
-        init = terraform(
-            ["init", "-backend=false", "-input=false", "-no-color"], work, INIT_TIMEOUT
-        )
-        assert init.returncode == 0, f"terraform init failed for {set_name}:\n{output(init)}"
-        cache[key] = work
-    return cache[key]
-
-
-@pytest.mark.parametrize("set_name", PARAM_SETS)
-def test_rendered_project_is_formatted(
-    version_dir: Path,
-    set_name: str,
-    tmp_path: Path,
-) -> None:
-    write_project(render_project(version_dir, PARAM_SETS[set_name]), tmp_path)
-    result = terraform(["fmt", "-check", "-recursive", "-diff", "-no-color"], tmp_path)
-    assert result.returncode == 0, f"terraform fmt -check failed:\n{output(result)}"
-
-
-@pytest.mark.parametrize("set_name", PARAM_SETS)
-def test_rendered_project_validates(
-    version_dir: Path,
-    set_name: str,
-    projects: dict[tuple[str, str], Path],
-    tmp_path_factory: pytest.TempPathFactory,
-) -> None:
-    work = _project(projects, tmp_path_factory, version_dir, set_name)
-    result = terraform(["validate", "-no-color"], work)
-    assert result.returncode == 0, f"terraform validate failed:\n{output(result)}"
+# --- 8.2 the rendered project builds a dependency graph ----------------------------------
 
 
 @pytest.mark.parametrize("set_name", ["default", "az1"])

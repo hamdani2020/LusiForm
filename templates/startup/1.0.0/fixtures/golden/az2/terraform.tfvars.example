@@ -1,0 +1,23 @@
+# Example variable values for this project. Copy to terraform.tfvars and edit.
+# The first group is what this version was generated with. The second group must be
+# set for your environment. Do not put credentials in this file.
+
+# Values this version was generated with
+region                = "us-east-1"
+name_prefix           = "lf-fix-az2"
+az_count              = 2
+task_size             = "1vcpu-2gb"
+min_tasks             = 2
+max_tasks             = 8
+instance_class        = "db.t4g.small"
+storage_gb            = 100
+backup_retention_days = 14
+log_retention_days    = 90
+
+# Set for your environment
+container_image     = "registry.example.com/your-team/your-app:1.0.0"
+container_port      = 8080
+health_check_path   = "/"
+certificate_arn     = ""
+deletion_protection = true
+skip_final_snapshot = false

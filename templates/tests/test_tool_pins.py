@@ -8,6 +8,7 @@ fails here rather than as a confusing validator difference later.
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
 from pathlib import Path
@@ -43,11 +44,13 @@ def _dockerfile_pins() -> dict[str, str]:
     terraform = re.search(r"hashicorp/terraform:(\d+\.\d+\.\d+)", text)
     tflint = re.search(r"terraform-linters/tflint:v(\d+\.\d+\.\d+)", text)
     checkov = re.search(r"checkov==(\d+\.\d+\.\d+)", text)
-    assert terraform and tflint and checkov, "worker/Dockerfile pins not found"
+    ruleset = re.search(r"ARG TFLINT_RULESET_AWS_VERSION=(\d+\.\d+\.\d+)", text)
+    assert terraform and tflint and checkov and ruleset, "worker/Dockerfile pins not found"
     return {
         "terraform": terraform.group(1),
         "tflint": tflint.group(1),
         "checkov": checkov.group(1),
+        "tflint_ruleset_aws": ruleset.group(1),
     }
 
 
@@ -97,3 +100,22 @@ def test_installed_tflint_matches_pin(version_dir: Path) -> None:
 def test_installed_checkov_matches_pin(version_dir: Path) -> None:
     out = _run("checkov", "--version").strip().splitlines()[-1].strip()
     assert out == _tools(_load(version_dir))["checkov"]
+
+
+def test_installed_tflint_ruleset_matches_pin(version_dir: Path) -> None:
+    version = _tools(_load(version_dir))["tflint_ruleset_aws"]
+    plugin_dir = os.environ["TFLINT_PLUGIN_DIR"]
+    installed = (
+        Path(plugin_dir) / "github.com" / "terraform-linters" / "tflint-ruleset-aws" / version
+    )
+    assert (installed / "tflint-ruleset-aws").is_file(), f"ruleset {version} is not installed"
+    # Exactly one version, so a stale plugin cannot be picked up by mistake.
+    versions = [p.name for p in installed.parent.iterdir()]
+    assert versions == [version]
+
+
+def test_tflint_config_uses_the_pinned_ruleset(version_dir: Path) -> None:
+    config = (version_dir / "tflint.hcl").read_text()
+    version = _tools(_load(version_dir))["tflint_ruleset_aws"]
+    assert f'version = "{version}"' in config
+    assert 'source  = "github.com/terraform-linters/tflint-ruleset-aws"' in config

@@ -39,9 +39,11 @@ templates/
         terraform.tfvars.example.tmpl
         README.md.tmpl
       fixtures/
-        params/                   # parameter sets used by tests (min, default, max, az1, az2)
-        golden/                   # stored rendered output per parameter set
+        params/                   # five named parameter sets: default, minimum, maximum, az1, az2
+        golden/                   # root files as rendered + a manifest of every file's SHA-256
         insecure/                 # deliberately insecure project that must fail Checkov
+        checkov-accepted.json     # Checkov findings this version may have, with severity and reason
+      tflint.hcl                  # tflint config for rendered projects (AWS ruleset, pinned)
   README.md
 ```
 
@@ -316,14 +318,21 @@ blocks. The pilot parameter sets must show zero high findings.
   wrong-type value is rejected with a message naming the parameter and bound.
 - **Module validation:** render each fixture parameter set (min, default, max,
   `az_count` 1, `az_count` 2) into a temporary project, then run `terraform fmt
-  -check`, `terraform init -backend=false` plus `validate`, `tflint`, and
-  `checkov`; assert all pass with zero high findings.
+  -check`, `terraform init -backend=false` plus `validate`, `tflint --recursive`, and
+  `checkov --skip-download`; assert all pass with zero high findings. Checkov is judged by
+  the validation spec's fail-closed rule against `fixtures/checkov-accepted.json`, and the
+  checks listed there under `must_pass` (encryption, public exposure, wildcard IAM,
+  hardening) must have run and passed.
 - **Insecure fixture:** a project with unencrypted RDS, a public database, and a
   wildcard IAM policy must fail Checkov, proving the gate catches violations.
-- **No-credentials/account-ID scan:** grep rendered output for access-key
-  patterns, 12-digit account IDs, and ARNs containing an account; fail on any hit.
-- **Determinism:** render each fixture twice and compare hashes; compare against
-  the stored golden output.
+- **No-credentials/account-ID scan:** scan rendered output and the golden files for
+  access-key patterns, secret names, literal passwords, 12-digit account IDs, and ARNs
+  containing an account; fail on any hit. The scanner is tested with known-bad text.
+- **Free text:** names typed by a consultant reach the README only, escaped, never a
+  resource name, file name, or Terraform file; notes are not a renderer input.
+- **Determinism:** render each fixture twice and in fresh interpreters with other time
+  zones, locales, and hash seeds, and compare hashes; compare against the stored golden
+  output byte for byte.
 - **Inventory completeness:** every resource type found in the modules appears in
   `inventory.json`, and the sandbox policy covers exactly that set.
 - **Version immutability:** a published version's file hashes must match a
@@ -344,6 +353,8 @@ blocks. The pilot parameter sets must show zero high findings.
    "high severity blocks export" rule therefore needs a severity map maintained by
    us (check ID to severity). This is a validation-spec decision, but the template
    fixtures depend on it. Verify against the pinned Checkov version.
+   **Confirmed for Checkov 3.4.3:** every failed check has severity `null`, so the map is
+   Lusiform's. A test fails if Checkov starts reporting severities.
 3. **NAT per AZ.** One NAT gateway per active AZ is resilient but is the largest
    fixed cost. Confirm this is the intended default for `az_count = 2`; a shared
    NAT was removed from the parameter set on purpose.
@@ -420,3 +431,27 @@ blocks. The pilot parameter sets must show zero high findings.
     and eight resource kinds as nodes, matching the diagram spec's icon list. If the diagram
     spec wants other nodes drawn, that changes `inventory.json` and so needs a new template
     version.
+23. **tflint must run with `--recursive` (validation spec).** Run from the project root with
+    only `--call-module-type=local`, as `validation-and-packaging/design.md` specifies, tflint
+    does not inspect the resources inside the modules; an invalid RDS instance class written
+    into a module passed. With `--recursive` the same input is an error. The validator needs
+    `--recursive` (this spec's tests use `--recursive --call-module-type=local`) and the
+    template's `tflint.hcl`.
+24. **The interim severity map and the HTTP findings (reviewer decision).** With Checkov 3.4.3
+    the template has 8 failing checks on every fixture. Four are public-exposure or
+    encryption-in-transit findings that the validation spec's rule words as HIGH: `CKV2_AWS_28`
+    (no WAF), `CKV_AWS_2` and `CKV_AWS_378` (HTTP listener), and `CKV_AWS_260` (port 80 open).
+    They are accepted as MEDIUM in `fixtures/checkov-accepted.json`, marked
+    `deviates_from_rule`, because the template serves HTTP by default and is a public load
+    balancer by design. If they are HIGH, no project with the default load balancer passes the
+    gate, and sandbox deployment needs a certificate. The other four (`CKV_AWS_91`,
+    `CKV_AWS_129`, `CKV_AWS_157`, `CKV_AWS_353`) are logging, availability, or observability.
+25. **Checkov cannot evaluate conditionals.** It reports `CKV_AWS_157` (Multi-AZ) for two-zone
+    projects, where `multi_az` is true, and still reports the HTTP findings when a certificate
+    is set. The module tests prove the real behaviour. The validator will show these as
+    findings; the blocked view should not suggest that a certificate or a zone change clears
+    them.
+26. **The worker image now carries the tflint AWS ruleset.** `worker/Dockerfile` pins
+    `tflint-ruleset-aws` 0.50.0 (installed with `tflint --init`, which checks the signature) and
+    records the pin in `template.json`; a test fails if they drift. This does the ruleset part
+    of the validation spec's image task.

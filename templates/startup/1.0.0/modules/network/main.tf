@@ -10,7 +10,6 @@ locals {
   vpc_cidr = "10.0.0.0/16"
 
   zone_indexes = [0, 1]
-  active_zones = range(var.az_count)
 }
 
 resource "aws_vpc" "this" {

@@ -1,0 +1,95 @@
+{
+  "schema": "lusiform.checkov-accepted/1",
+  "template": "startup",
+  "version": "1.0.0",
+  "checkov": "3.4.3",
+  "assumptions": [
+    "Open-source Checkov 3.4.3 reports no severity for any check (every failed check had severity null). Severity is therefore Lusiform's to assign. The validation spec owns checkov-severity.json; until it exists, this file is the interim map for this template version, and the tests fail if Checkov starts reporting severities.",
+    "The rule used is the validation spec's: a failing check that is not listed under 'accepted' is treated as HIGH, so it blocks. Encryption, public exposure, and wildcard IAM checks would be HIGH if they failed; logging, retention, and availability checks are LOW or MEDIUM.",
+    "Four accepted findings would be HIGH under that rule's wording (public exposure and encryption in transit). They are listed with deviates_from_rule = true because the template serves HTTP by default and is a public load balancer by design. If the AWS expert rules them HIGH, no project with the default HTTP-only load balancer can pass the gate, so that decision belongs with the template review (design question 1).",
+    "Checkov evaluates expressions statically and cannot resolve conditionals such as `var.az_count == 2` or `local.https_enabled ? ... : ...`, so it reports CKV_AWS_157 for two-zone fixtures and still reports the HTTP findings when a certificate is set. The module tests prove the real behaviour."
+  ],
+  "accepted": {
+    "CKV2_AWS_28": {
+      "severity": "MEDIUM",
+      "deviates_from_rule": true,
+      "reason": "A public load balancer without AWS WAF. WAF is out of scope for the MVP template by product decision."
+    },
+    "CKV_AWS_2": {
+      "severity": "MEDIUM",
+      "deviates_from_rule": true,
+      "reason": "The load balancer serves HTTP unless certificate_arn is set. HTTP-only is the sandbox default; the HTTPS path is covered by the compute module tests. Checkov also reports this when a certificate is set (conditional not evaluated)."
+    },
+    "CKV_AWS_378": {
+      "severity": "MEDIUM",
+      "deviates_from_rule": true,
+      "reason": "Same HTTP listener as CKV_AWS_2."
+    },
+    "CKV_AWS_260": {
+      "severity": "MEDIUM",
+      "deviates_from_rule": true,
+      "reason": "A public load balancer accepts port 80 from the internet by design; with a certificate it redirects to HTTPS."
+    },
+    "CKV_AWS_91": {
+      "severity": "LOW",
+      "deviates_from_rule": false,
+      "reason": "Load balancer access logs need an S3 bucket, which the template deliberately does not have (design question 10)."
+    },
+    "CKV_AWS_129": {
+      "severity": "LOW",
+      "deviates_from_rule": false,
+      "reason": "RDS log exports are off to avoid unmanaged, unencrypted log groups (design question 9). Query logging is configured in the parameter group."
+    },
+    "CKV_AWS_157": {
+      "severity": "MEDIUM",
+      "deviates_from_rule": false,
+      "reason": "multi_az follows az_count by design. One-zone fixtures are correct; for two zones this is a false positive because Checkov cannot evaluate az_count == 2."
+    },
+    "CKV_AWS_353": {
+      "severity": "LOW",
+      "deviates_from_rule": false,
+      "reason": "Performance Insights is not enabled; it is not available on every allowed instance class."
+    }
+  },
+  "must_pass": {
+    "encryption_at_rest": ["CKV_AWS_16", "CKV_AWS_158", "CKV_AWS_7", "CKV2_AWS_64"],
+    "encryption_in_transit": ["CKV2_AWS_69", "CKV_AWS_103", "CKV2_AWS_74"],
+    "public_exposure": [
+      "CKV_AWS_17",
+      "CKV_AWS_130",
+      "CKV_AWS_333",
+      "CKV_AWS_24",
+      "CKV_AWS_25",
+      "CKV_AWS_277",
+      "CKV_AWS_382"
+    ],
+    "wildcard_and_privileged_iam": [
+      "CKV_AWS_60",
+      "CKV_AWS_61",
+      "CKV_AWS_62",
+      "CKV_AWS_63",
+      "CKV_AWS_274",
+      "CKV_AWS_286",
+      "CKV_AWS_287",
+      "CKV_AWS_288",
+      "CKV_AWS_289",
+      "CKV_AWS_290",
+      "CKV_AWS_355",
+      "CKV2_AWS_40",
+      "CKV_AWS_33"
+    ],
+    "hardening": [
+      "CKV_AWS_161",
+      "CKV_AWS_118",
+      "CKV_AWS_226",
+      "CKV2_AWS_11",
+      "CKV2_AWS_12",
+      "CKV_AWS_131",
+      "CKV_AWS_334",
+      "CKV_AWS_336",
+      "CKV_AWS_65",
+      "CKV_AWS_66",
+      "CKV_AWS_41"
+    ]
+  }
+}

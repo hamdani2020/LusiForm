@@ -7,7 +7,8 @@
   "tools": {
     "terraform": "1.10.5",
     "tflint": "0.54.0",
-    "checkov": "3.4.3"
+    "checkov": "3.4.3",
+    "tflint_ruleset_aws": "0.50.0"
   },
   "review": {
     "reviewed_by": null,

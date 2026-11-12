@@ -1,6 +1,18 @@
 # Database module tests. Mocked AWS provider: no credentials, no AWS calls.
 
 mock_provider "aws" {
+  mock_data "aws_caller_identity" {
+    defaults = {
+      account_id = "000000000000"
+    }
+  }
+
+  mock_data "aws_partition" {
+    defaults = {
+      partition = "aws"
+    }
+  }
+
   mock_resource "aws_kms_key" {
     defaults = {
       arn = "arn:aws:kms:us-east-1:000000000000:key/00000000-0000-0000-0000-000000000000"
@@ -85,6 +97,24 @@ run "storage_is_encrypted_with_the_customer_managed_key" {
   assert {
     condition     = output.kms_key_arn == aws_kms_key.database.arn
     error_message = "the key ARN must be exported"
+  }
+}
+
+run "key_policy_is_the_default_one_written_out" {
+  command = plan
+
+  assert {
+    condition     = length(jsondecode(aws_kms_key.database.policy).Statement) == 1
+    error_message = "the key policy has exactly one statement"
+  }
+
+  assert {
+    condition = (
+      jsondecode(aws_kms_key.database.policy).Statement[0].Principal.AWS == "arn:aws:iam::000000000000:root" &&
+      jsondecode(aws_kms_key.database.policy).Statement[0].Action == "kms:*" &&
+      jsondecode(aws_kms_key.database.policy).Statement[0].Effect == "Allow"
+    )
+    error_message = "the account administers the key and delegates use through IAM; no other principal"
   }
 }
 
