@@ -87,7 +87,7 @@ module "compute" {
   vpc_id              = module.network.vpc_id
   vpc_cidr            = module.network.vpc_cidr
   public_subnet_ids   = module.network.public_subnet_ids
-  private_subnet_ids  = module.network.active_private_app_subnet_ids
+  task_subnet_ids     = module.network.active_public_subnet_ids
   task_size           = var.task_size
   min_tasks           = var.min_tasks
   max_tasks           = var.max_tasks

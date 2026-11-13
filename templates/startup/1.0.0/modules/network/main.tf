@@ -1,9 +1,14 @@
-# Network: one VPC with public, private application, and isolated data subnets.
+# Network: one VPC with public and isolated data subnets. There is no NAT gateway.
+#
+# Application tasks run in the public subnets with a public IP address, so they can reach
+# the image registry and AWS APIs through the internet gateway. What protects them is their
+# security group (see the compute module): it admits traffic from the load balancer only.
+# Data subnets have no route to the internet.
 #
 # Subnets are always created in two Availability Zones, because an Application Load
 # Balancer and an RDS subnet group each need subnets in at least two zones. `az_count`
-# controls the workload instead: how many NAT gateways exist and which application
-# subnets are active (see outputs). Data subnets have no route to the internet.
+# controls the workload instead: which public subnets run tasks (see outputs) and, in the
+# database module, whether there is a standby.
 
 locals {
   # Fixed address plan, matching the Architecture-stage diagram. Not a parameter.
@@ -47,19 +52,6 @@ resource "aws_subnet" "public" {
   })
 }
 
-resource "aws_subnet" "private_app" {
-  count = length(local.zone_indexes)
-
-  vpc_id            = aws_vpc.this.id
-  availability_zone = var.availability_zones[count.index]
-  cidr_block        = cidrsubnet(local.vpc_cidr, 8, 10 + count.index)
-
-  tags = merge(var.tags, {
-    Name = "${var.name_prefix}-app-${var.availability_zones[count.index]}"
-    Tier = "private-app"
-  })
-}
-
 resource "aws_subnet" "data" {
   count = length(local.zone_indexes)
 
@@ -91,53 +83,6 @@ resource "aws_route_table_association" "public" {
 
   subnet_id      = aws_subnet.public[count.index].id
   route_table_id = aws_route_table.public.id
-}
-
-# NAT: one gateway per active zone, so a zone outage cannot cut egress for the other.
-resource "aws_eip" "nat" {
-  count = var.az_count
-
-  domain = "vpc"
-
-  tags = merge(var.tags, { Name = "${var.name_prefix}-nat-${var.availability_zones[count.index]}" })
-
-  depends_on = [aws_internet_gateway.this]
-}
-
-resource "aws_nat_gateway" "this" {
-  count = var.az_count
-
-  allocation_id = aws_eip.nat[count.index].id
-  subnet_id     = aws_subnet.public[count.index].id
-
-  tags = merge(var.tags, { Name = "${var.name_prefix}-nat-${var.availability_zones[count.index]}" })
-
-  depends_on = [aws_internet_gateway.this]
-}
-
-# Private application: one route table per zone. Only active zones get a default route
-# through their own NAT gateway; the inactive zone's subnet has local routes only.
-resource "aws_route_table" "private_app" {
-  count = length(local.zone_indexes)
-
-  vpc_id = aws_vpc.this.id
-
-  tags = merge(var.tags, { Name = "${var.name_prefix}-app-${var.availability_zones[count.index]}" })
-}
-
-resource "aws_route" "private_app_nat" {
-  count = var.az_count
-
-  route_table_id         = aws_route_table.private_app[count.index].id
-  destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id         = aws_nat_gateway.this[count.index].id
-}
-
-resource "aws_route_table_association" "private_app" {
-  count = length(local.zone_indexes)
-
-  subnet_id      = aws_subnet.private_app[count.index].id
-  route_table_id = aws_route_table.private_app[count.index].id
 }
 
 # Data: local routes only. No route to the internet or to a NAT gateway.

@@ -12,9 +12,9 @@ runs in.
 
 A single-region footprint in one VPC:
 
-- **Network:** public, private application, and isolated data subnets in two
-  Availability Zones, an internet gateway, NAT gateways for the active zones, and VPC
-  flow logs.
+- **Network:** public and isolated data subnets in two Availability Zones, an internet
+  gateway, and VPC flow logs. There is no NAT gateway: application tasks run in the public
+  subnets with a public IP address, and only their security group limits who can reach them.
 - **Compute:** an ECS Fargate service behind a public Application Load Balancer, with
   CPU-based auto scaling.
 - **Database:** Amazon RDS for PostgreSQL 16 in the isolated data subnets, encrypted
@@ -30,7 +30,7 @@ A single-region footprint in one VPC:
 
 | Parameter | Value |
 | --- | --- |
-| Availability Zones running the workload (`az_count`) | 2 |
+| Availability Zones running the workload (`az_count`) | 1 |
 | Task size (`task_size`) | 0.25vcpu-0.5gb |
 | Minimum tasks (`min_tasks`) | 2 |
 | Maximum tasks (`max_tasks`) | 6 |

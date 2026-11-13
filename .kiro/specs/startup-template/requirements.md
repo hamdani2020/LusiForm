@@ -42,9 +42,10 @@ designing it myself.
 1. THE template SHALL consist of these modules only: networking, compute
    (ECS Fargate), database (RDS PostgreSQL), logging and monitoring (CloudWatch),
    and IAM (least-privilege roles).
-2. THE networking module SHALL create a single-region VPC with public, private
-   application, and isolated data subnets, and SHALL support one or two
-   Availability Zones as a parameter.
+2. THE networking module SHALL create a single-region VPC with public and isolated
+   data subnets and no NAT gateway, SHALL place application tasks in the public
+   subnets (protected by security groups), and SHALL support one or two
+   Availability Zones as a parameter, defaulting to one.
 3. THE template SHALL NOT include EKS, Aurora, ElastiCache, CloudFront, AWS WAF,
    a third Availability Zone, or Graviton-only constructs.
 4. THE template SHALL target a single AWS region per project; it SHALL NOT create

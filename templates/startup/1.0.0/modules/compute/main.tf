@@ -1,9 +1,11 @@
 # Compute: an ECS Fargate service behind an Application Load Balancer, with CPU-based
 # auto scaling between min_tasks and max_tasks.
 #
-# Tasks run in the private application subnets for the active zones. The load balancer is
-# public and spans both public subnets. Only the load balancer accepts traffic from the
-# internet; tasks accept traffic from the load balancer alone.
+# There is no NAT gateway. Tasks run in the public subnets for the active zones and get a
+# public IP address, which they need to pull the image and reach AWS APIs. The security group
+# is the only network control: tasks accept traffic from the load balancer alone, and the
+# load balancer is the only thing that accepts traffic from the internet. The load balancer
+# spans both public subnets.
 
 data "aws_region" "current" {}
 
@@ -244,9 +246,9 @@ resource "aws_ecs_service" "app" {
   health_check_grace_period_seconds = 60
 
   network_configuration {
-    subnets          = var.private_subnet_ids
+    subnets          = var.task_subnet_ids
     security_groups  = [aws_security_group.tasks.id]
-    assign_public_ip = false
+    assign_public_ip = true
   }
 
   load_balancer {

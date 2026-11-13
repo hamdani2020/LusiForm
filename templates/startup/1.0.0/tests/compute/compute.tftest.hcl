@@ -39,7 +39,7 @@ variables {
   vpc_id             = "vpc-0123456789abcdef0"
   vpc_cidr           = "10.0.0.0/16"
   public_subnet_ids  = ["subnet-0aaaaaaaaaaaaaaa1", "subnet-0bbbbbbbbbbbbbbb2"]
-  private_subnet_ids = ["subnet-0ccccccccccccccc3", "subnet-0ddddddddddddddd4"]
+  task_subnet_ids    = ["subnet-0ccccccccccccccc3", "subnet-0ddddddddddddddd4"]
   task_size          = "0.25vcpu-0.5gb"
   min_tasks          = 2
   max_tasks          = 6
@@ -184,7 +184,7 @@ run "logs_go_to_the_supplied_group_and_credentials_come_from_secrets_manager" {
 
 # --- Service and placement ----------------------------------------------------------------------
 
-run "service_starts_at_min_tasks_in_the_supplied_private_subnets" {
+run "service_starts_at_min_tasks_in_the_supplied_task_subnets" {
   command = plan
 
   assert {
@@ -193,13 +193,13 @@ run "service_starts_at_min_tasks_in_the_supplied_private_subnets" {
   }
 
   assert {
-    condition     = one(aws_ecs_service.app.network_configuration).subnets == toset(var.private_subnet_ids)
-    error_message = "tasks must be placed in the private subnets passed in"
+    condition     = one(aws_ecs_service.app.network_configuration).subnets == toset(var.task_subnet_ids)
+    error_message = "tasks must be placed in the task subnets passed in"
   }
 
   assert {
-    condition     = one(aws_ecs_service.app.network_configuration).assign_public_ip == false
-    error_message = "tasks must not get public IPs"
+    condition     = one(aws_ecs_service.app.network_configuration).assign_public_ip == true
+    error_message = "tasks run in public subnets with no NAT, so they need a public IP address"
   }
 
   assert {
@@ -212,7 +212,7 @@ run "one_active_zone_places_tasks_in_one_subnet" {
   command = plan
 
   variables {
-    private_subnet_ids = ["subnet-0ccccccccccccccc3"]
+    task_subnet_ids = ["subnet-0ccccccccccccccc3"]
   }
 
   assert {
@@ -509,14 +509,14 @@ run "rejects_an_empty_container_image" {
   expect_failures = [var.container_image]
 }
 
-run "rejects_three_private_subnets" {
+run "rejects_three_task_subnets" {
   command = plan
 
   variables {
-    private_subnet_ids = ["subnet-1", "subnet-2", "subnet-3"]
+    task_subnet_ids = ["subnet-1", "subnet-2", "subnet-3"]
   }
 
-  expect_failures = [var.private_subnet_ids]
+  expect_failures = [var.task_subnet_ids]
 }
 
 run "rejects_a_name_prefix_without_the_lf_prefix" {

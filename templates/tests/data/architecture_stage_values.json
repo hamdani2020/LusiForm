@@ -1,6 +1,6 @@
 {
   "_comment": "Allowed values and ranges the Architecture-stage screen presents. Read from the Stitch screen Architecture Stage - Default (project 18075726235522465175, screen a626b2e6f3194136b4f3475f74f0e61e) on 2026-11-11: task size, instance class, AZ count, log retention options and the min/max/storage/backup ranges. The screen does not show defaults (its preselected values are sample project values), so the default fields come from .kiro/specs/startup-template/design.md. When the screen changes, update this file and schema.json together; test_schema.py fails if they disagree.",
-  "network.az_count": { "enum": [1, 2], "default": 2 },
+  "network.az_count": { "enum": [1, 2], "default": 1 },
   "compute.task_size": {
     "enum": ["0.25vcpu-0.5gb", "0.5vcpu-1gb", "1vcpu-2gb", "2vcpu-4gb"],
     "default": "0.25vcpu-0.5gb"

@@ -25,6 +25,7 @@ from template_tools.publication import (
 
 TEMPLATES_ROOT = Path(__file__).resolve().parent.parent
 VERSION_DIRS = sorted(p for p in (TEMPLATES_ROOT / "startup").iterdir() if p.is_dir())
+NO_REVIEW = {"reviewed_by": None, "reviewed_at": None, "notes_ref": None}
 REVIEW = {"reviewed_by": "A. Reviewer", "reviewed_at": "2026-11-20", "notes_ref": None}
 
 
@@ -36,9 +37,15 @@ def version_dir(request: pytest.FixtureRequest) -> Path:
 
 @pytest.fixture
 def copy(version_dir: Path, tmp_path: Path) -> Path:
-    """A scratch copy of the version directory that tests may change."""
+    """A scratch copy, reset to an unreviewed draft, that tests may change.
+
+    The committed version may already be published, so the copy drops its manifest, review
+    record, and status; each test then publishes the copy itself when it needs to.
+    """
     target = tmp_path / version_dir.name
     shutil.copytree(version_dir, target, ignore=shutil.ignore_patterns(".terraform", "__pycache__"))
+    (target / MANIFEST_NAME).unlink(missing_ok=True)
+    _set_template(target, status="draft", review=NO_REVIEW)
     return target
 
 
@@ -118,14 +125,14 @@ def test_an_unknown_status_is_rejected() -> None:
 
 
 def test_publishing_without_a_review_fails_the_version_check(copy: Path) -> None:
-    _set_template(copy, status="published", review={"reviewed_by": None, "reviewed_at": None})
+    _set_template(copy, status="published", review=NO_REVIEW)
     problems = check_version(copy)
     assert any("reviewed_by" in p for p in problems)
     assert any("reviewed_at" in p for p in problems)
 
 
 def test_the_manifest_cannot_be_written_without_a_review(copy: Path) -> None:
-    _set_template(copy, status="published")
+    _set_template(copy, status="published", review=NO_REVIEW)
     with pytest.raises(PublicationError, match="reviewed_by"):
         write_manifest(copy)
     assert not (copy / MANIFEST_NAME).exists()
@@ -260,7 +267,7 @@ def test_the_row_of_a_published_version_carries_the_manifest_hash(copy: Path) ->
 
 
 def test_the_helper_refuses_an_unreviewed_publication(copy: Path) -> None:
-    _set_template(copy, status="published")
+    _set_template(copy, status="published", review=NO_REVIEW)
     with pytest.raises(PublicationError, match="reviewed_by"):
         template_version_row(copy)
 
@@ -289,7 +296,7 @@ def test_the_cli_check_and_row(copy: Path, capsys: pytest.CaptureFixture[str]) -
 
 
 def test_the_cli_fails_on_a_bad_version(copy: Path, capsys: pytest.CaptureFixture[str]) -> None:
-    _set_template(copy, status="published")
+    _set_template(copy, status="published", review=NO_REVIEW)
     assert publication.main(["check", str(copy)]) == 1
     assert publication.main(["manifest", str(copy)]) == 1
     assert publication.main(["row", str(copy)]) == 1

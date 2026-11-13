@@ -83,7 +83,7 @@ bounds below match the validated Architecture-stage screen.
 | `database.instance_class` | database | enum | `db.t3.micro`, `db.t3.small`, `db.t3.medium` | `db.t3.micro` |
 | `database.storage_gb` | database | integer | 20–1000 | 20 |
 | `database.backup_retention_days` | database | integer | 1–35 | 7 |
-| `network.az_count` | network | enum | 1, 2 | 2 |
+| `network.az_count` | network | enum | 1, 2 | 1 |
 | `monitoring.log_retention_days` | monitoring | enum | `7`, `14`, `30`, `90`, `365` | 30 |
 
 Cross-field rules live in the schema (`max_tasks >= min_tasks`). Intake-derived
@@ -107,12 +107,12 @@ that answers "what is in the template":
 - The **sandbox policy** is generated from it (see below).
 
 The inventory is per block, not per type, because the graph has one node per resource
-address and the same type appears more than once in a module (three subnet tiers, four
-alarms, four roles). The set of Terraform types, 29 in all, is derived from it.
+address and the same type appears more than once in a module (two subnet tiers, four
+alarms, four roles). The set of Terraform types, 27 in all, is derived from it.
 
 | Module | Resource types |
 | --- | --- |
-| network | `aws_vpc`, `aws_internet_gateway`, `aws_subnet`, `aws_route_table`, `aws_route_table_association`, `aws_route`, `aws_nat_gateway`, `aws_eip`, `aws_default_security_group`, `aws_flow_log` |
+| network | `aws_vpc`, `aws_internet_gateway`, `aws_subnet`, `aws_route_table`, `aws_route_table_association`, `aws_route`, `aws_default_security_group`, `aws_flow_log` |
 | compute | `aws_ecs_cluster`, `aws_ecs_task_definition`, `aws_ecs_service`, `aws_lb`, `aws_lb_target_group`, `aws_lb_listener`, `aws_security_group`, `aws_appautoscaling_target`, `aws_appautoscaling_policy` |
 | database | `aws_db_instance`, `aws_db_subnet_group`, `aws_db_parameter_group`, `aws_security_group`, `aws_kms_key`, `aws_kms_alias` |
 | monitoring | `aws_cloudwatch_log_group`, `aws_cloudwatch_metric_alarm`, `aws_kms_key`, `aws_kms_alias` |
@@ -123,21 +123,18 @@ An entry looks like:
 ```json
 {
   "module": "network",
-  "address": "aws_nat_gateway.this",
-  "type": "aws_nat_gateway",
+  "address": "aws_internet_gateway.this",
+  "type": "aws_internet_gateway",
   "representation": "node",
-  "node": "nat_gateway",
-  "instances": { "parameter": "network.az_count" },
-  "pricing": [
-    { "hint": "nat_gateway_hours", "service": "AmazonEC2" },
-    { "hint": "nat_data_processed_gb", "service": "AmazonEC2" }
-  ]
+  "node": "internet_gateway",
+  "instances": { "fixed": 1 },
+  "pricing": []
 }
 ```
 
 Pricing hints are the line items of the generation-pipeline estimate table, plus
-`public_ipv4_hours` for the public IPv4 address charge on the NAT gateways' Elastic IPs,
-which that table does not list. A test compares the inventory to the module files, so a
+`public_ipv4_hours` for the public IPv4 address charge on each Fargate task (tasks have
+public addresses because there is no NAT gateway), which that table does not list. A test compares the inventory to the module files, so a
 resource block cannot be added without it.
 
 Route 53, ACM, and S3 are deliberately absent: the customer owns DNS and
@@ -153,19 +150,21 @@ account or time, so rendering stays deterministic.
 
 - One VPC. **Subnets are always created in two Availability Zones**, and the
   `az_count` parameter controls what runs in them (see decision below).
-- Per AZ: a public subnet, a private application subnet, an isolated data subnet.
-- Internet gateway for public subnets. NAT gateway per active AZ for private
-  egress. Data subnets have no route to the internet.
+- Per AZ: a public subnet and an isolated data subnet. There is no private application
+  subnet and **no NAT gateway** (reviewer decision, review packet D3): Fargate tasks run
+  in the public subnets with a public IP address, so they can pull images and reach AWS
+  APIs through the internet gateway. Security groups are the only network control on them.
+- Internet gateway for public subnets. Data subnets have no route to the internet.
 - Default security group locked down. VPC flow logs enabled to CloudWatch.
 
 **Decision: why two AZs of subnets even when `az_count = 1`.** An Application Load
 Balancer and an RDS subnet group each require subnets in at least two AZs, so a
 true single-AZ footprint cannot be built. The design therefore creates subnets in
-two AZs always, and `az_count` controls the **workload**: number of NAT gateways,
-where Fargate tasks are placed, and whether the database has a standby. With
+two AZs always, and `az_count` controls the **workload**: where Fargate tasks are placed
+and whether the database has a standby. One zone is the default (a startup template does
+not need more, and it is the cheaper option); two zones is optional. With
 `az_count = 1` the workload runs in the first AZ only and RDS is single-AZ; with
-`az_count = 2` tasks spread across both AZs, a NAT gateway exists per AZ, and RDS
-is Multi-AZ. This matches the Technical Design ("two AZs where the parameter
+`az_count = 2` tasks spread across both AZs and RDS is Multi-AZ. This matches the Technical Design ("two AZs where the parameter
 requires it") and the UI's 1 to 2 range. Flagged for expert review.
 
 ### compute
@@ -174,8 +173,11 @@ requires it") and the UI's 1 to 2 range. Flagged for expert review.
   Task CPU and memory come from `task_size`. Desired count starts at `min_tasks`;
   Application Auto Scaling scales between `min_tasks` and `max_tasks` on CPU.
 - Public ALB in the public subnets, security group allowing 80/443 from the
-  internet and forwarding to the tasks. Tasks run in private subnets with a
-  security group that only accepts traffic from the ALB.
+  internet and forwarding to the tasks. Tasks run in the public subnets with a public IP
+  address and a security group that only accepts traffic from the ALB; that group is their
+  only network protection.
+- The load balancer serves HTTP by default. When `certificate_arn` is set it serves HTTPS
+  on 443 and port 80 redirects to it; HTTPS is used only when a certificate is available.
 - The container image is an input variable (`container_image`) supplied at deploy
   time through `terraform.tfvars.example`. No account-specific registry URL is
   baked into the template.
@@ -355,9 +357,10 @@ blocks. The pilot parameter sets must show zero high findings.
    fixtures depend on it. Verify against the pinned Checkov version.
    **Confirmed for Checkov 3.4.3:** every failed check has severity `null`, so the map is
    Lusiform's. A test fails if Checkov starts reporting severities.
-3. **NAT per AZ.** One NAT gateway per active AZ is resilient but is the largest
-   fixed cost. Confirm this is the intended default for `az_count = 2`; a shared
-   NAT was removed from the parameter set on purpose.
+3. **NAT gateway.** Resolved by the reviewer: the template has no NAT gateway and no
+   private application subnets. Tasks run in the public subnets with public IPs, protected
+   by their security group (review packet D3). `CKV_AWS_333` is accepted for this reason.
+   A NAT option would be a new template version.
 4. **Estimate screen mismatch.** The Estimate stage mock still lists a Route 53
    hosted zone line item. The template does not create one. Either the mock
    changes or the inventory gains Route 53; this spec assumes the mock changes.
@@ -391,7 +394,7 @@ blocks. The pilot parameter sets must show zero high findings.
 13. **Availability Zone names.** The network module takes the two zone names as an input
     (the root passes `<region>a` and `<region>b`) instead of looking them up, to keep
     rendering deterministic. Some accounts do not have `a` and `b` in every region.
-14. **Egress is narrow.** Tasks may reach HTTPS on the internet (through NAT) and PostgreSQL
+14. **Egress is narrow.** Tasks may reach HTTPS on the internet (directly, through the internet gateway) and PostgreSQL
     in the VPC only. A workload that needs another outbound port needs a new template version.
 15. **No provider lock file in the rendered project.** The root templates ship no
     `.terraform.lock.hcl`. A lock file committed from one machine would carry hashes for
@@ -424,7 +427,7 @@ blocks. The pilot parameter sets must show zero high findings.
     scopes ARNs to `lf-*`. The generation spec must derive it that way, for example `lf-`
     plus the first eight hex characters of the project id.
 21. **Estimate gaps.** The generation-pipeline estimate table has no line for the public IPv4
-    address charge (about $3.65 a month per NAT gateway, plus the load balancer's addresses),
+    address charge (about $3.65 a month per running Fargate task and per load balancer address),
     which the inventory now hints as `public_ipv4_hours`. The RDS-managed secret (about $0.40
     a month) and the four CloudWatch alarms have no hint; they are small.
 22. **Graph representation is a proposal.** The inventory marks the VPC and subnets as groups

@@ -34,7 +34,7 @@ templates/
   tests/                      pytest suite for the template
 ```
 
-`1.0.0` is a draft until the expert review in task 12 of the `startup-template` spec.
+`1.0.0` is published (reviewed 2026-11-13; see `.kiro/specs/startup-template/review-packet.md`). Its files are frozen by `manifest.json`.
 
 Module tests live in `startup/<version>/tests/`, outside `modules/`, so test fixtures
 (fake ARNs and account IDs) can never be copied into a rendered project. The renderer
@@ -44,7 +44,7 @@ copies `modules/*/*.tf` only.
 
 | Module | Owns | Takes from other modules |
 | --- | --- | --- |
-| `network` | VPC, subnets in two zones, NAT per active zone, routes, flow log | flow log group (monitoring), flow log role (iam) |
+| `network` | VPC, public and data subnets in two zones, routes, flow log; no NAT gateway | flow log group (monitoring), flow log role (iam) |
 | `monitoring` | KMS key, log groups, four alarms | ALB, ECS, and RDS identifiers (compute, database) |
 | `iam` | ECS execution and task roles, flow log role, RDS monitoring role | flow log group (monitoring), DB secret ARN (database) |
 | `database` | RDS PostgreSQL 16, KMS key, subnet and parameter groups, security group | data subnets (network), task security group (compute), monitoring role (iam) |
@@ -142,7 +142,7 @@ how many instances it has, how it is drawn, and its pricing hints.
 - `pricing`: hints for the estimate service. Each names a billable line item and the Pricing
   API service code; the filters and quantity formulas live in the estimate service. Beyond
   the line items in the generation-pipeline design, `public_ipv4_hours` covers the public IPv4
-  address charge on the NAT gateways' Elastic IPs.
+  address charge on each Fargate task, which has a public address because there is no NAT gateway.
 
 A test compares the inventory to the module files block for block, including each `count`
 expression, so a new or changed block cannot be missed.

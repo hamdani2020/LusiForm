@@ -1,7 +1,7 @@
 {
   "template": "startup",
   "version": "1.0.0",
-  "status": "draft",
+  "status": "published",
   "terraform": ">= 1.10.0",
   "aws_provider": "~> 5.47",
   "tools": {
@@ -11,8 +11,8 @@
     "tflint_ruleset_aws": "0.50.0"
   },
   "review": {
-    "reviewed_by": null,
-    "reviewed_at": null,
-    "notes_ref": null
+    "reviewed_by": "Hamdani Gandi",
+    "reviewed_at": "2026-11-13",
+    "notes_ref": ".kiro/specs/startup-template/review-packet.md"
   }
 }

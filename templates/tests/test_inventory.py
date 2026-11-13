@@ -21,11 +21,11 @@ TEMPLATES_ROOT = Path(__file__).resolve().parent.parent
 VERSION_DIRS = sorted(p for p in (TEMPLATES_ROOT / "startup").iterdir() if p.is_dir())
 MODULES = ["network", "compute", "database", "monitoring", "iam"]
 
-# The node types the diagram has icons for (diagram spec) and the group kinds it draws.
+# The node types the diagram has icons for (diagram spec). The template has no NAT gateway, so
+# that icon is never used. This is the subset the template draws and the group kinds it draws.
 NODE_TYPES = {
     "internet_gateway",
     "load_balancer",
-    "nat_gateway",
     "ecs_service",
     "rds_instance",
     "log_group",
@@ -33,7 +33,7 @@ NODE_TYPES = {
     "iam_role",
 }
 GROUP_KINDS = {"vpc", "subnet"}
-TIERS = {"public", "private-app", "data"}
+TIERS = {"public", "data"}
 
 # Pricing hints: id -> Pricing API service code. The estimate service owns the filters.
 PRICING_HINTS = {
@@ -41,8 +41,6 @@ PRICING_HINTS = {
     "fargate_memory_gb_hours": "AmazonECS",
     "alb_hours": "AWSELB",
     "alb_lcu_hours": "AWSELB",
-    "nat_gateway_hours": "AmazonEC2",
-    "nat_data_processed_gb": "AmazonEC2",
     "rds_instance_hours": "AmazonRDS",
     "rds_storage_gb_month": "AmazonRDS",
     "cloudwatch_logs_ingested_gb": "AmazonCloudWatch",
@@ -206,7 +204,6 @@ def test_the_set_of_terraform_types(version_dir: Path) -> None:
             "aws_ecs_cluster",
             "aws_ecs_service",
             "aws_ecs_task_definition",
-            "aws_eip",
             "aws_flow_log",
             "aws_iam_policy",
             "aws_iam_role",
@@ -217,7 +214,6 @@ def test_the_set_of_terraform_types(version_dir: Path) -> None:
             "aws_lb",
             "aws_lb_listener",
             "aws_lb_target_group",
-            "aws_nat_gateway",
             "aws_route",
             "aws_route_table",
             "aws_route_table_association",
@@ -228,12 +224,9 @@ def test_the_set_of_terraform_types(version_dir: Path) -> None:
     )
 
 
-def test_nat_gateways_and_standby_follow_az_count(version_dir: Path) -> None:
+def test_there_is_no_nat_gateway_and_the_standby_follows_az_count(version_dir: Path) -> None:
     by_address = {f"{e['module']}.{e['address']}": e for e in _entries(version_dir)}
-    assert by_address["network.aws_nat_gateway.this"]["instances"] == {
-        "parameter": "network.az_count"
-    }
-    assert by_address["network.aws_eip.nat"]["instances"] == {"parameter": "network.az_count"}
+    assert not [a for a in by_address if "nat" in a or "private_app" in a or "aws_eip" in a]
     assert by_address["network.aws_subnet.public"]["instances"] == {"fixed": 2}
     assert by_address["database.aws_db_instance.this"]["instances"] == {"fixed": 1}
 
@@ -266,10 +259,12 @@ def test_billable_resources_carry_hints(version_dir: Path) -> None:
     def hints(address: str) -> set[str]:
         return {h["hint"] for h in by_address[address]["pricing"]}
 
-    assert hints("compute.aws_ecs_service.app") == {"fargate_vcpu_hours", "fargate_memory_gb_hours"}
-    assert hints("network.aws_nat_gateway.this") == {"nat_gateway_hours", "nat_data_processed_gb"}
+    assert hints("compute.aws_ecs_service.app") == {
+        "fargate_vcpu_hours",
+        "fargate_memory_gb_hours",
+        "public_ipv4_hours",
+    }
     assert hints("database.aws_db_instance.this") == {"rds_instance_hours", "rds_storage_gb_month"}
     assert {"alb_hours", "alb_lcu_hours"} <= hints("compute.aws_lb.this")
-    assert hints("network.aws_eip.nat") == {"public_ipv4_hours"}
     assert hints("monitoring.aws_kms_key.logs") == {"kms_key_months"}
     assert hints("database.aws_kms_key.database") == {"kms_key_months"}

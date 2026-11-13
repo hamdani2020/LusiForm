@@ -10,7 +10,7 @@ variables {
   flow_log_role_arn        = "arn:aws:iam::000000000000:role/lf-demo-vpc-flow-logs"
 }
 
-run "two_zones_have_two_nat_gateways_and_all_subnets" {
+run "two_zones_run_tasks_in_both_public_subnets" {
   command = plan
 
   variables {
@@ -18,36 +18,17 @@ run "two_zones_have_two_nat_gateways_and_all_subnets" {
   }
 
   assert {
-    condition     = length(aws_nat_gateway.this) == 2 && length(aws_eip.nat) == 2
-    error_message = "az_count = 2 must create one NAT gateway and one Elastic IP per zone"
-  }
-
-  assert {
-    condition     = output.nat_gateway_count == 2
-    error_message = "nat_gateway_count must equal az_count"
-  }
-
-  assert {
-    condition = (
-      length(aws_subnet.public) == 2 &&
-      length(aws_subnet.private_app) == 2 &&
-      length(aws_subnet.data) == 2
-    )
+    condition     = length(aws_subnet.public) == 2 && length(aws_subnet.data) == 2
     error_message = "subnets are always created in two zones for every tier"
   }
 
   assert {
-    condition     = length(output.active_private_app_subnet_ids) == 2
-    error_message = "both application subnets are active when az_count = 2"
-  }
-
-  assert {
-    condition     = length(aws_route.private_app_nat) == 2
-    error_message = "each active application subnet needs its own NAT route"
+    condition     = length(output.active_public_subnet_ids) == 2
+    error_message = "both public subnets are active when az_count = 2"
   }
 }
 
-run "one_zone_has_one_nat_gateway_but_still_two_subnets_per_tier" {
+run "one_zone_runs_tasks_in_one_public_subnet_but_still_has_two_subnets_per_tier" {
   command = plan
 
   variables {
@@ -55,32 +36,13 @@ run "one_zone_has_one_nat_gateway_but_still_two_subnets_per_tier" {
   }
 
   assert {
-    condition     = length(aws_nat_gateway.this) == 1 && length(aws_eip.nat) == 1
-    error_message = "az_count = 1 must create exactly one NAT gateway and one Elastic IP"
-  }
-
-  assert {
-    condition     = output.nat_gateway_count == 1
-    error_message = "nat_gateway_count must equal az_count"
-  }
-
-  assert {
-    condition = (
-      length(aws_subnet.public) == 2 &&
-      length(aws_subnet.private_app) == 2 &&
-      length(aws_subnet.data) == 2
-    )
+    condition     = length(aws_subnet.public) == 2 && length(aws_subnet.data) == 2
     error_message = "the load balancer and database subnet group need two zones even when az_count = 1"
   }
 
   assert {
-    condition     = length(output.active_private_app_subnet_ids) == 1
-    error_message = "only the first zone's application subnet is active when az_count = 1"
-  }
-
-  assert {
-    condition     = length(aws_route.private_app_nat) == 1
-    error_message = "only the active zone gets a NAT route"
+    condition     = length(output.active_public_subnet_ids) == 1
+    error_message = "only the first zone's public subnet is active when az_count = 1"
   }
 }
 
@@ -99,11 +61,6 @@ run "address_plan_matches_the_architecture_diagram" {
   assert {
     condition     = [for s in aws_subnet.public : s.cidr_block] == ["10.0.1.0/24", "10.0.2.0/24"]
     error_message = "public subnets must be 10.0.1.0/24 and 10.0.2.0/24"
-  }
-
-  assert {
-    condition     = [for s in aws_subnet.private_app : s.cidr_block] == ["10.0.10.0/24", "10.0.11.0/24"]
-    error_message = "application subnets must be 10.0.10.0/24 and 10.0.11.0/24"
   }
 
   assert {
@@ -131,10 +88,7 @@ run "data_subnets_have_no_route_to_the_internet" {
   }
 
   assert {
-    condition = alltrue([
-      for r in concat([aws_route.public_internet], aws_route.private_app_nat) :
-      r.route_table_id != aws_route_table.data.id
-    ])
+    condition     = aws_route.public_internet.route_table_id != aws_route_table.data.id
     error_message = "no route may be added to the data route table"
   }
 
@@ -146,19 +100,6 @@ run "data_subnets_have_no_route_to_the_internet" {
   assert {
     condition     = aws_route.public_internet.gateway_id == aws_internet_gateway.this.id
     error_message = "the public route table sends the default route to the internet gateway"
-  }
-
-  assert {
-    condition = alltrue([
-      for i, r in aws_route.private_app_nat :
-      r.nat_gateway_id == aws_nat_gateway.this[i].id && r.route_table_id == aws_route_table.private_app[i].id
-    ])
-    error_message = "each application route table must use the NAT gateway in its own zone"
-  }
-
-  assert {
-    condition     = alltrue([for i, n in aws_nat_gateway.this : n.subnet_id == aws_subnet.public[i].id])
-    error_message = "NAT gateways must sit in the public subnet of their own zone"
   }
 }
 

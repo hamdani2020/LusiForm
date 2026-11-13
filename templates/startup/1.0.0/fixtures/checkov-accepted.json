@@ -6,29 +6,34 @@
   "assumptions": [
     "Open-source Checkov 3.4.3 reports no severity for any check (every failed check had severity null). Severity is therefore Lusiform's to assign. The validation spec owns checkov-severity.json; until it exists, this file is the interim map for this template version, and the tests fail if Checkov starts reporting severities.",
     "The rule used is the validation spec's: a failing check that is not listed under 'accepted' is treated as HIGH, so it blocks. Encryption, public exposure, and wildcard IAM checks would be HIGH if they failed; logging, retention, and availability checks are LOW or MEDIUM.",
-    "Four accepted findings would be HIGH under that rule's wording (public exposure and encryption in transit). They are listed with deviates_from_rule = true because the template serves HTTP by default and is a public load balancer by design. If the AWS expert rules them HIGH, no project with the default HTTP-only load balancer can pass the gate, so that decision belongs with the template review (design question 1).",
+    "Five accepted findings would be HIGH under that rule's wording (public exposure and encryption in transit). They are listed with deviates_from_rule = true because the template serves HTTP by default and is a public load balancer by design. If the AWS expert rules them HIGH, no project with the default HTTP-only load balancer can pass the gate, so that decision belongs with the template review (design question 1).",
     "Checkov evaluates expressions statically and cannot resolve conditionals such as `var.az_count == 2` or `local.https_enabled ? ... : ...`, so it reports CKV_AWS_157 for two-zone fixtures and still reports the HTTP findings when a certificate is set. The module tests prove the real behaviour."
   ],
   "accepted": {
     "CKV2_AWS_28": {
-      "severity": "MEDIUM",
+      "severity": "LOW",
       "deviates_from_rule": true,
       "reason": "A public load balancer without AWS WAF. WAF is out of scope for the MVP template by product decision."
     },
     "CKV_AWS_2": {
-      "severity": "MEDIUM",
+      "severity": "LOW",
       "deviates_from_rule": true,
       "reason": "The load balancer serves HTTP unless certificate_arn is set. HTTP-only is the sandbox default; the HTTPS path is covered by the compute module tests. Checkov also reports this when a certificate is set (conditional not evaluated)."
     },
     "CKV_AWS_378": {
-      "severity": "MEDIUM",
+      "severity": "LOW",
       "deviates_from_rule": true,
       "reason": "Same HTTP listener as CKV_AWS_2."
     },
     "CKV_AWS_260": {
-      "severity": "MEDIUM",
+      "severity": "LOW",
       "deviates_from_rule": true,
       "reason": "A public load balancer accepts port 80 from the internet by design; with a certificate it redirects to HTTPS."
+    },
+    "CKV_AWS_333": {
+      "severity": "MEDIUM",
+      "deviates_from_rule": true,
+      "reason": "ECS tasks get a public IP address. The template has no NAT gateway: tasks run in the public subnets and only their security group (traffic from the load balancer alone) limits access. This is a product decision, recorded in the review packet (D3). A new template version with a NAT option would clear it."
     },
     "CKV_AWS_91": {
       "severity": "LOW",
@@ -57,7 +62,6 @@
     "public_exposure": [
       "CKV_AWS_17",
       "CKV_AWS_130",
-      "CKV_AWS_333",
       "CKV_AWS_24",
       "CKV_AWS_25",
       "CKV_AWS_277",

@@ -5,7 +5,7 @@
 # Values this version was generated with
 region                = "us-east-1"
 name_prefix           = "lf-fix-default"
-az_count              = 2
+az_count              = 1
 task_size             = "0.25vcpu-0.5gb"
 min_tasks             = 2
 max_tasks             = 6

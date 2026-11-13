@@ -15,7 +15,7 @@ variable "tags" {
 }
 
 variable "az_count" {
-  description = "Availability Zones the workload runs in (1 or 2). Subnets always exist in two zones; this sets the number of NAT gateways and which application subnets are active."
+  description = "Availability Zones the workload runs in (1 or 2). Subnets always exist in two zones; this sets which public subnets run tasks."
   type        = number
 
   validation {

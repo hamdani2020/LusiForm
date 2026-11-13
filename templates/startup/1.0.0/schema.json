@@ -13,10 +13,10 @@
       "properties": {
         "az_count": {
           "title": "Availability Zones",
-          "description": "Zones the workload runs in. Subnets always exist in two zones; this sets NAT gateways, task placement, and whether the database has a standby.",
+          "description": "Zones the workload runs in. Subnets always exist in two zones; this sets task placement and whether the database has a standby. One zone is the default; two is optional.",
           "type": "integer",
           "enum": [1, 2],
-          "default": 2
+          "default": 1
         }
       }
     },

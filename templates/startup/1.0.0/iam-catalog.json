@@ -16,8 +16,6 @@
     "ec2:subnet": ["arn:aws:ec2:*:${aws:PrincipalAccount}:subnet/*"],
     "ec2:route-table": ["arn:aws:ec2:*:${aws:PrincipalAccount}:route-table/*"],
     "ec2:internet-gateway": ["arn:aws:ec2:*:${aws:PrincipalAccount}:internet-gateway/*"],
-    "ec2:elastic-ip": ["arn:aws:ec2:*:${aws:PrincipalAccount}:elastic-ip/*"],
-    "ec2:natgateway": ["arn:aws:ec2:*:${aws:PrincipalAccount}:natgateway/*"],
     "ec2:security-group": ["arn:aws:ec2:*:${aws:PrincipalAccount}:security-group/*"],
     "ec2:security-group-rule": ["arn:aws:ec2:*:${aws:PrincipalAccount}:security-group-rule/*"],
     "ec2:vpc-flow-log": ["arn:aws:ec2:*:${aws:PrincipalAccount}:vpc-flow-log/*"],
@@ -95,21 +93,6 @@
       "uses": ["ec2:route-table", "ec2:subnet"],
       "write": ["ec2:AssociateRouteTable", "ec2:ReplaceRouteTableAssociation", "ec2:DisassociateRouteTable"],
       "read": ["ec2:DescribeRouteTables"]
-    },
-    "aws_eip": {
-      "creates": ["ec2:elastic-ip"],
-      "create": ["ec2:AllocateAddress"],
-      "write": ["ec2:ReleaseAddress"],
-      "read": ["ec2:DescribeAddresses", "ec2:DescribeAddressesAttribute"],
-      "tag": ["ec2:CreateTags", "ec2:DeleteTags"]
-    },
-    "aws_nat_gateway": {
-      "creates": ["ec2:natgateway"],
-      "uses": ["ec2:subnet", "ec2:elastic-ip", "ec2:vpc"],
-      "create": ["ec2:CreateNatGateway"],
-      "write": ["ec2:DeleteNatGateway"],
-      "read": ["ec2:DescribeNatGateways"],
-      "tag": ["ec2:CreateTags", "ec2:DeleteTags"]
     },
     "aws_flow_log": {
       "creates": ["ec2:vpc-flow-log"],

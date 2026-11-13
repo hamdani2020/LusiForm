@@ -171,17 +171,17 @@ against any AWS account in this spec; stop at `fmt`, `validate`, `tflint`, and
       the operator route in the admin spec does.
     - _Requirements: 5.3_
 
-- [ ] 12. Expert review and release
+- [x] 12. Expert review and release
   - [x] 12.1 Prepare the review packet
     - Assemble the module set, parameter bounds, security defaults, sandbox
       policy, and the open questions (HTTPS, NAT per AZ, KMS keys) for the
       AWS-experienced reviewer.
     - _Requirements: 6.2_
-  - [ ] 12.2 Resolve open questions and record the review
+  - [x] 12.2 Resolve open questions and record the review
     - Fold in the reviewer's decisions, update the modules and tests, and record
       the review in `template.json`. Keep the version `draft` until this is done.
     - _Requirements: 6.1, 6.3_
-  - [ ] 12.3 Publish the initial version
+  - [x] 12.3 Publish the initial version
     - With the review recorded, mark `1.0.0` published and generate its file hash
       manifest.
     - _Requirements: 5.5, 6.1_

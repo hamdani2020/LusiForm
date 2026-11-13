@@ -11,7 +11,7 @@
         "rds",
         "secretsmanager"
       ],
-      "characters": 5795,
+      "characters": 5269,
       "policy": {
         "Version": "2012-10-17",
         "Statement": [
@@ -19,19 +19,15 @@
             "Sid": "Ec2CreateTagged",
             "Effect": "Allow",
             "Action": [
-              "ec2:AllocateAddress",
               "ec2:CreateFlowLogs",
               "ec2:CreateInternetGateway",
-              "ec2:CreateNatGateway",
               "ec2:CreateRouteTable",
               "ec2:CreateSecurityGroup",
               "ec2:CreateSubnet",
               "ec2:CreateVpc"
             ],
             "Resource": [
-              "arn:aws:ec2:*:${aws:PrincipalAccount}:elastic-ip/*",
               "arn:aws:ec2:*:${aws:PrincipalAccount}:internet-gateway/*",
-              "arn:aws:ec2:*:${aws:PrincipalAccount}:natgateway/*",
               "arn:aws:ec2:*:${aws:PrincipalAccount}:route-table/*",
               "arn:aws:ec2:*:${aws:PrincipalAccount}:security-group/*",
               "arn:aws:ec2:*:${aws:PrincipalAccount}:subnet/*",
@@ -49,9 +45,7 @@
             "Effect": "Allow",
             "Action": "ec2:CreateTags",
             "Resource": [
-              "arn:aws:ec2:*:${aws:PrincipalAccount}:elastic-ip/*",
               "arn:aws:ec2:*:${aws:PrincipalAccount}:internet-gateway/*",
-              "arn:aws:ec2:*:${aws:PrincipalAccount}:natgateway/*",
               "arn:aws:ec2:*:${aws:PrincipalAccount}:route-table/*",
               "arn:aws:ec2:*:${aws:PrincipalAccount}:security-group/*",
               "arn:aws:ec2:*:${aws:PrincipalAccount}:subnet/*",
@@ -62,10 +56,8 @@
               "StringEquals": {
                 "aws:RequestTag/lusiform-managed": "true",
                 "ec2:CreateAction": [
-                  "AllocateAddress",
                   "CreateFlowLogs",
                   "CreateInternetGateway",
-                  "CreateNatGateway",
                   "CreateRouteTable",
                   "CreateSecurityGroup",
                   "CreateSubnet",
@@ -83,7 +75,6 @@
               "ec2:AuthorizeSecurityGroupEgress",
               "ec2:AuthorizeSecurityGroupIngress",
               "ec2:CreateFlowLogs",
-              "ec2:CreateNatGateway",
               "ec2:CreateRoute",
               "ec2:CreateRouteTable",
               "ec2:CreateSecurityGroup",
@@ -91,7 +82,6 @@
               "ec2:CreateTags",
               "ec2:DeleteFlowLogs",
               "ec2:DeleteInternetGateway",
-              "ec2:DeleteNatGateway",
               "ec2:DeleteRoute",
               "ec2:DeleteRouteTable",
               "ec2:DeleteSecurityGroup",
@@ -103,16 +93,13 @@
               "ec2:DisassociateRouteTable",
               "ec2:ModifySubnetAttribute",
               "ec2:ModifyVpcAttribute",
-              "ec2:ReleaseAddress",
               "ec2:ReplaceRoute",
               "ec2:ReplaceRouteTableAssociation",
               "ec2:RevokeSecurityGroupEgress",
               "ec2:RevokeSecurityGroupIngress"
             ],
             "Resource": [
-              "arn:aws:ec2:*:${aws:PrincipalAccount}:elastic-ip/*",
               "arn:aws:ec2:*:${aws:PrincipalAccount}:internet-gateway/*",
-              "arn:aws:ec2:*:${aws:PrincipalAccount}:natgateway/*",
               "arn:aws:ec2:*:${aws:PrincipalAccount}:route-table/*",
               "arn:aws:ec2:*:${aws:PrincipalAccount}:security-group/*",
               "arn:aws:ec2:*:${aws:PrincipalAccount}:subnet/*",
@@ -140,11 +127,9 @@
             "Action": [
               "ec2:DescribeAccountAttributes",
               "ec2:DescribeAddresses",
-              "ec2:DescribeAddressesAttribute",
               "ec2:DescribeAvailabilityZones",
               "ec2:DescribeFlowLogs",
               "ec2:DescribeInternetGateways",
-              "ec2:DescribeNatGateways",
               "ec2:DescribeNetworkAcls",
               "ec2:DescribeNetworkInterfaces",
               "ec2:DescribeRouteTables",

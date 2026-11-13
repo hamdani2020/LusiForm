@@ -84,8 +84,6 @@ ID_BASED = {
     "ec2:subnet",
     "ec2:route-table",
     "ec2:internet-gateway",
-    "ec2:elastic-ip",
-    "ec2:natgateway",
     "ec2:security-group",
     "ec2:security-group-rule",
     "ec2:vpc-flow-log",
@@ -268,17 +266,17 @@ def test_extras_are_for_inventory_types(version_dir: Path) -> None:
 
 
 def test_dropping_a_resource_type_drops_its_permissions(version_dir: Path) -> None:
-    # A policy for a template without an EKS-free example: remove the NAT gateway and check
-    # its actions disappear. The catalog entry then becomes an orphan, which is refused.
+    # Remove the flow log from the template and check its actions disappear. The catalog
+    # entry then becomes an orphan, which is refused.
     inventory = copy.deepcopy(_inventory(version_dir))
-    inventory["resources"] = [e for e in inventory["resources"] if e["type"] != "aws_nat_gateway"]
+    inventory["resources"] = [e for e in inventory["resources"] if e["type"] != "aws_flow_log"]
     with pytest.raises(PolicyError, match="not in the inventory"):
         derive(inventory, _catalog(version_dir), _reference(version_dir))
     catalog = copy.deepcopy(_catalog(version_dir))
-    del catalog["types"]["aws_nat_gateway"]
+    del catalog["types"]["aws_flow_log"]
     result = derive(inventory, catalog, _reference(version_dir))
     granted = {a for s in result.statements for a in _as_list(s["Action"])}
-    assert "ec2:CreateNatGateway" not in granted and "ec2:DeleteNatGateway" not in granted
+    assert "ec2:CreateFlowLogs" not in granted and "ec2:DeleteFlowLogs" not in granted
 
 
 # --- IAM document validity ---------------------------------------------------------------

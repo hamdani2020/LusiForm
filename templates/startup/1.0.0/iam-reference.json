@@ -29,14 +29,8 @@
     "cloudwatch:alarm": [
       "arn:${Partition}:cloudwatch:${Region}:${Account}:alarm:${AlarmName}"
     ],
-    "ec2:elastic-ip": [
-      "arn:${Partition}:ec2:${Region}:${Account}:elastic-ip/${AllocationId}"
-    ],
     "ec2:internet-gateway": [
       "arn:${Partition}:ec2:${Region}:${Account}:internet-gateway/${InternetGatewayId}"
-    ],
-    "ec2:natgateway": [
-      "arn:${Partition}:ec2:${Region}:${Account}:natgateway/${NatGatewayId}"
     ],
     "ec2:route-table": [
       "arn:${Partition}:ec2:${Region}:${Account}:route-table/${RouteTableId}"
@@ -269,26 +263,6 @@
         ]
       }
     },
-    "ec2:AllocateAddress": {
-      "keys": [
-        "ec2:Region"
-      ],
-      "resource_types": 3,
-      "resources": {
-        "ec2:elastic-ip": [
-          "aws:RequestTag/${TagKey}",
-          "aws:ResourceTag/${TagKey}",
-          "aws:TagKeys",
-          "ec2:AllocationId",
-          "ec2:Attribute",
-          "ec2:Attribute/${AttributeName}",
-          "ec2:Domain",
-          "ec2:PublicIpAddress",
-          "ec2:Region",
-          "ec2:ResourceTag/${TagKey}"
-        ]
-      }
-    },
     "ec2:AssociateRouteTable": {
       "keys": [
         "ec2:Region"
@@ -418,14 +392,6 @@
       ],
       "resource_types": 7,
       "resources": {
-        "ec2:natgateway": [
-          "aws:RequestTag/${TagKey}",
-          "aws:ResourceTag/${TagKey}",
-          "aws:TagKeys",
-          "ec2:Region",
-          "ec2:ResourceTag/${TagKey}",
-          "ec2:Vpc"
-        ],
         "ec2:subnet": [
           "aws:RequestTag/${TagKey}",
           "aws:ResourceTag/${TagKey}",
@@ -478,64 +444,6 @@
           "ec2:InternetGatewayID",
           "ec2:Region",
           "ec2:ResourceTag/${TagKey}"
-        ]
-      }
-    },
-    "ec2:CreateNatGateway": {
-      "keys": [
-        "ec2:Region"
-      ],
-      "resource_types": 4,
-      "resources": {
-        "ec2:elastic-ip": [
-          "aws:RequestTag/${TagKey}",
-          "aws:ResourceTag/${TagKey}",
-          "aws:TagKeys",
-          "ec2:AllocationId",
-          "ec2:Attribute",
-          "ec2:Attribute/${AttributeName}",
-          "ec2:Domain",
-          "ec2:PublicIpAddress",
-          "ec2:Region",
-          "ec2:ResourceTag/${TagKey}"
-        ],
-        "ec2:natgateway": [
-          "aws:RequestTag/${TagKey}",
-          "aws:ResourceTag/${TagKey}",
-          "aws:TagKeys",
-          "ec2:Region",
-          "ec2:ResourceTag/${TagKey}",
-          "ec2:Vpc"
-        ],
-        "ec2:subnet": [
-          "aws:RequestTag/${TagKey}",
-          "aws:ResourceTag/${TagKey}",
-          "aws:TagKeys",
-          "ec2:Attribute",
-          "ec2:Attribute/${AttributeName}",
-          "ec2:AvailabilityZone",
-          "ec2:AvailabilityZoneId",
-          "ec2:Ipv4IpamPoolId",
-          "ec2:Ipv6IpamPoolId",
-          "ec2:IsLaunchTemplateResource",
-          "ec2:LaunchTemplate",
-          "ec2:Region",
-          "ec2:ResourceTag/${TagKey}",
-          "ec2:SubnetID",
-          "ec2:Vpc"
-        ],
-        "ec2:vpc": [
-          "aws:RequestTag/${TagKey}",
-          "aws:ResourceTag/${TagKey}",
-          "aws:TagKeys",
-          "ec2:Attribute",
-          "ec2:Attribute/${AttributeName}",
-          "ec2:Ipv4IpamPoolId",
-          "ec2:Ipv6IpamPoolId",
-          "ec2:Region",
-          "ec2:ResourceTag/${TagKey}",
-          "ec2:Tenancy",
-          "ec2:VpcID"
         ]
       }
     },
@@ -663,18 +571,6 @@
       ],
       "resource_types": 106,
       "resources": {
-        "ec2:elastic-ip": [
-          "aws:RequestTag/${TagKey}",
-          "aws:ResourceTag/${TagKey}",
-          "aws:TagKeys",
-          "ec2:AllocationId",
-          "ec2:Attribute",
-          "ec2:Attribute/${AttributeName}",
-          "ec2:Domain",
-          "ec2:PublicIpAddress",
-          "ec2:Region",
-          "ec2:ResourceTag/${TagKey}"
-        ],
         "ec2:internet-gateway": [
           "aws:RequestTag/${TagKey}",
           "aws:ResourceTag/${TagKey}",
@@ -682,14 +578,6 @@
           "ec2:InternetGatewayID",
           "ec2:Region",
           "ec2:ResourceTag/${TagKey}"
-        ],
-        "ec2:natgateway": [
-          "aws:RequestTag/${TagKey}",
-          "aws:ResourceTag/${TagKey}",
-          "aws:TagKeys",
-          "ec2:Region",
-          "ec2:ResourceTag/${TagKey}",
-          "ec2:Vpc"
         ],
         "ec2:route-table": [
           "aws:RequestTag/${TagKey}",
@@ -809,22 +697,6 @@
         ]
       }
     },
-    "ec2:DeleteNatGateway": {
-      "keys": [
-        "ec2:Region"
-      ],
-      "resource_types": 1,
-      "resources": {
-        "ec2:natgateway": [
-          "aws:RequestTag/${TagKey}",
-          "aws:ResourceTag/${TagKey}",
-          "aws:TagKeys",
-          "ec2:Region",
-          "ec2:ResourceTag/${TagKey}",
-          "ec2:Vpc"
-        ]
-      }
-    },
     "ec2:DeleteRoute": {
       "keys": [
         "ec2:Region"
@@ -910,18 +782,6 @@
       ],
       "resource_types": 106,
       "resources": {
-        "ec2:elastic-ip": [
-          "aws:RequestTag/${TagKey}",
-          "aws:ResourceTag/${TagKey}",
-          "aws:TagKeys",
-          "ec2:AllocationId",
-          "ec2:Attribute",
-          "ec2:Attribute/${AttributeName}",
-          "ec2:Domain",
-          "ec2:PublicIpAddress",
-          "ec2:Region",
-          "ec2:ResourceTag/${TagKey}"
-        ],
         "ec2:internet-gateway": [
           "aws:RequestTag/${TagKey}",
           "aws:ResourceTag/${TagKey}",
@@ -929,14 +789,6 @@
           "ec2:InternetGatewayID",
           "ec2:Region",
           "ec2:ResourceTag/${TagKey}"
-        ],
-        "ec2:natgateway": [
-          "aws:RequestTag/${TagKey}",
-          "aws:ResourceTag/${TagKey}",
-          "aws:TagKeys",
-          "ec2:Region",
-          "ec2:ResourceTag/${TagKey}",
-          "ec2:Vpc"
         ],
         "ec2:route-table": [
           "aws:RequestTag/${TagKey}",
@@ -1039,13 +891,6 @@
       "resource_types": 0,
       "resources": {}
     },
-    "ec2:DescribeAddressesAttribute": {
-      "keys": [
-        "ec2:Region"
-      ],
-      "resource_types": 0,
-      "resources": {}
-    },
     "ec2:DescribeAvailabilityZones": {
       "keys": [
         "ec2:Region"
@@ -1061,13 +906,6 @@
       "resources": {}
     },
     "ec2:DescribeInternetGateways": {
-      "keys": [
-        "ec2:Region"
-      ],
-      "resource_types": 0,
-      "resources": {}
-    },
-    "ec2:DescribeNatGateways": {
       "keys": [
         "ec2:Region"
       ],
@@ -1258,26 +1096,6 @@
           "ec2:ResourceTag/${TagKey}",
           "ec2:Tenancy",
           "ec2:VpcID"
-        ]
-      }
-    },
-    "ec2:ReleaseAddress": {
-      "keys": [
-        "ec2:Region"
-      ],
-      "resource_types": 1,
-      "resources": {
-        "ec2:elastic-ip": [
-          "aws:RequestTag/${TagKey}",
-          "aws:ResourceTag/${TagKey}",
-          "aws:TagKeys",
-          "ec2:AllocationId",
-          "ec2:Attribute",
-          "ec2:Attribute/${AttributeName}",
-          "ec2:Domain",
-          "ec2:PublicIpAddress",
-          "ec2:Region",
-          "ec2:ResourceTag/${TagKey}"
         ]
       }
     },

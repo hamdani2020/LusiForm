@@ -113,7 +113,7 @@ def test_zone_counts(version_dir: Path) -> None:
         name: apply_defaults(schema, f.parameters)["network"]["az_count"]
         for name, f in fixtures.items()
     }
-    assert counts == {"default": 2, "minimum": 1, "maximum": 2, "az1": 1, "az2": 2}
+    assert counts == {"default": 1, "minimum": 1, "maximum": 2, "az1": 1, "az2": 2}
 
 
 def test_fixtures_cover_both_zone_counts_and_several_regions(version_dir: Path) -> None:

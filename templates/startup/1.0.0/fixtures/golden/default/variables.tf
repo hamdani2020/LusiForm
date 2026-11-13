@@ -15,7 +15,7 @@ variable "name_prefix" {
 variable "az_count" {
   description = "Availability Zones the workload runs in: 1 or 2."
   type        = number
-  default     = 2
+  default     = 1
 }
 
 variable "task_size" {

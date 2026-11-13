@@ -12,9 +12,9 @@ runs in.
 
 A single-region footprint in one VPC:
 
-- **Network:** public, private application, and isolated data subnets in two
-  Availability Zones, an internet gateway, NAT gateways for the active zones, and VPC
-  flow logs.
+- **Network:** public and isolated data subnets in two Availability Zones, an internet
+  gateway, and VPC flow logs. There is no NAT gateway: application tasks run in the public
+  subnets with a public IP address, and only their security group limits who can reach them.
 - **Compute:** an ECS Fargate service behind a public Application Load Balancer, with
   CPU-based auto scaling.
 - **Database:** Amazon RDS for PostgreSQL 16 in the isolated data subnets, encrypted

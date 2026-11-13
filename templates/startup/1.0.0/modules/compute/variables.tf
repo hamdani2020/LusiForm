@@ -34,13 +34,13 @@ variable "public_subnet_ids" {
   }
 }
 
-variable "private_subnet_ids" {
-  description = "Active private application subnet ids, one per active zone. This is what places the tasks."
+variable "task_subnet_ids" {
+  description = "Active public subnet ids, one per active zone. This is what places the tasks; they get a public IP address and are protected by their security group."
   type        = list(string)
 
   validation {
-    condition     = length(var.private_subnet_ids) >= 1 && length(var.private_subnet_ids) <= 2
-    error_message = "private_subnet_ids must hold one or two subnets."
+    condition     = length(var.task_subnet_ids) >= 1 && length(var.task_subnet_ids) <= 2
+    error_message = "task_subnet_ids must hold one or two subnets."
   }
 }
 
