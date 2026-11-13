@@ -186,16 +186,16 @@ against any AWS account in this spec; stop at `fmt`, `validate`, `tflint`, and
       manifest.
     - _Requirements: 5.5, 6.1_
 
-- [ ] 13. Final verification
-  - [ ] 13.1 Run the full template suite
+- [x] 13. Final verification
+  - [x] 13.1 Run the full template suite
     - Schema, module validation, insecure fixture, credential scan, determinism,
       inventory, immutability, and review gate. All must pass.
     - _Requirements: all_
-  - [ ] 13.2 Update steering with real commands
+  - [x] 13.2 Update steering with real commands
     - Record the exact template test and validation commands in
       `.kiro/steering/tech.md` and `terraform.md`.
     - _Requirements: NFR 3_
-  - [ ] 13.3 Confirm the acceptance criteria
+  - [x] 13.3 Confirm the acceptance criteria
     - Walk requirements 1 to 6 and note which test or artifact proves each; flag
       anything not covered.
     - _Requirements: all_

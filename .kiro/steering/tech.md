@@ -19,7 +19,9 @@
 
 One fixed template, stored as Terraform modules in `templates/`:
 
-- Networking: a single region, one VPC, two AZs where a parameter requires it.
+- Networking: a single region, one VPC, public and isolated data subnets in two AZs
+  (the workload runs in one by default; two is a parameter). No NAT gateway: Fargate
+  tasks run in the public subnets with public IPs, protected by security groups.
 - Compute: ECS Fargate (serverless or small container footprint). Not EKS.
 - Database: managed PostgreSQL on RDS. Not Aurora, unless a future template
   version adds it deliberately.
@@ -122,6 +124,24 @@ docker compose run --rm migrate alembic current
 docker compose run --rm migrate alembic revision --autogenerate -m "message"
 docker compose run --rm api python -m app.bootstrap_operator \
   --partner-name Lusiform --email you@example.com --cognito-sub SUB   # first platform operator
+```
+
+`templates/` (the startup template; the suite runs in the `worker` container, which carries the
+pinned Terraform, tflint, and Checkov, and never plans or applies):
+
+```
+templates/scripts/run-tests.sh -q                                # whole suite: schema, modules, validators, determinism, publication
+templates/scripts/run-tests.sh -k pins                           # pytest arguments pass through
+templates/scripts/run-tests.sh tests/test_modules_static.py      # fast, no Terraform
+docker compose run --rm --no-deps -w /app/templates worker uv run --frozen --project /app/worker ruff check --config /app/worker/pyproject.toml .
+docker compose run --rm --no-deps -w /app/templates worker uv run --frozen --project /app/worker mypy --config-file /app/worker/pyproject.toml template_tools tests scripts
+terraform fmt -check -recursive templates                        # on the host
+# inside the worker container (prefix: docker compose run --rm --no-deps -w /app/templates worker uv run --frozen --project /app/worker):
+python -m template_tools.sandbox_policy startup/1.0.0 [--check]  # write or verify sandbox-policy.json
+python tests/update_golden.py startup/1.0.0                      # regenerate golden files after an intended change; review the diff
+python -m template_tools.publication check startup/1.0.0         # review gate and manifest
+python -m template_tools.publication manifest startup/1.0.0      # write manifest.json (published versions only)
+python -m template_tools.publication row startup/1.0.0           # template_versions row values (writes nothing)
 ```
 
 `infra/` (Terraform on the host; two cloud environments, `staging` and `prod`):
