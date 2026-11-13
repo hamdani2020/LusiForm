@@ -37,9 +37,9 @@ variable "max_tasks" {
 }
 
 variable "instance_class" {
-  description = "RDS instance class: db.t4g.micro, db.t4g.small, or db.t4g.medium."
+  description = "RDS instance class: db.t3.micro, db.t3.small, or db.t3.medium."
   type        = string
-  default     = "db.t4g.medium"
+  default     = "db.t3.medium"
 }
 
 variable "storage_gb" {

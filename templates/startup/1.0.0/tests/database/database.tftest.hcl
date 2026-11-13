@@ -39,7 +39,7 @@ variables {
   primary_availability_zone = "us-east-1a"
   allowed_security_group_id = "sg-0123456789abcdef0"
   monitoring_role_arn       = "arn:aws:iam::000000000000:role/lf-demo-rds-monitoring"
-  instance_class            = "db.t4g.micro"
+  instance_class            = "db.t3.micro"
   storage_gb                = 20
   backup_retention_days     = 7
   az_count                  = 2
@@ -49,7 +49,7 @@ run "engine_is_postgres_16_with_the_chosen_sizing" {
   command = plan
 
   variables {
-    instance_class        = "db.t4g.small"
+    instance_class        = "db.t3.small"
     storage_gb            = 100
     backup_retention_days = 14
   }
@@ -60,7 +60,7 @@ run "engine_is_postgres_16_with_the_chosen_sizing" {
   }
 
   assert {
-    condition     = aws_db_instance.this.instance_class == "db.t4g.small"
+    condition     = aws_db_instance.this.instance_class == "db.t3.small"
     error_message = "instance_class must reach the instance"
   }
 

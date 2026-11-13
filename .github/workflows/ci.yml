@@ -170,6 +170,13 @@ jobs:
         run: docker compose run --rm --no-deps -w /app/templates worker uv run --frozen --project /app/worker ruff format --config /app/worker/pyproject.toml --check .
       - name: mypy
         run: docker compose run --rm --no-deps -w /app/templates worker uv run --frozen --project /app/worker mypy --config-file /app/worker/pyproject.toml template_tools tests scripts
+      # Review gate and frozen-version manifest for every template version (also in the suite).
+      - name: Publication guards
+        run: |
+          for dir in templates/startup/*/; do
+            docker compose run --rm --no-deps -w /app/templates worker \
+              uv run --frozen --project /app/worker python -m template_tools.publication check "startup/$(basename "$dir")"
+          done
       # Runs fmt, init, validate, and mocked terraform test for every module with the pinned
       # Terraform 1.10.5, plus the schema, scope, and tool-pin checks. The first run downloads
       # the AWS provider. pytest exits non-zero when it collects nothing.

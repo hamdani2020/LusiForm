@@ -34,7 +34,7 @@ A single-region footprint in one VPC:
 | Task size (`task_size`) | 2vcpu-4gb |
 | Minimum tasks (`min_tasks`) | 10 |
 | Maximum tasks (`max_tasks`) | 20 |
-| Database instance class (`instance_class`) | db.t4g.medium |
+| Database instance class (`instance_class`) | db.t3.medium |
 | Database storage in GB (`storage_gb`) | 1000 |
 | Backup retention in days (`backup_retention_days`) | 35 |
 | Log retention in days (`log_retention_days`) | 365 |

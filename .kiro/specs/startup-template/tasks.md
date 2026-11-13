@@ -155,24 +155,24 @@ against any AWS account in this spec; stop at `fmt`, `validate`, `tflint`, and
       output; fail on any difference.
     - _Requirements: 3.1_
 
-- [ ] 11. Add versioning and publication guards
-  - [ ] 11.1 Record file hashes for published versions
+- [x] 11. Add versioning and publication guards
+  - [x] 11.1 Record file hashes for published versions
     - A manifest of file hashes per version; a test fails if a published
       version's files change.
     - _Requirements: 5.1, 5.2_
-  - [ ] 11.2 Add the review gate
+  - [x] 11.2 Add the review gate
     - A check that blocks setting `status` to `published` unless
       `review.reviewed_by` and `review.reviewed_at` are set; wire it into CI and
       the publish step.
     - _Requirements: 6.1, 6.3_
-  - [ ] 11.3 Add the publish helper
+  - [x] 11.3 Add the publish helper
     - A script that, given a version directory, validates it and produces the
       values for a `template_versions` row. It does not write to the database;
       the operator route in the admin spec does.
     - _Requirements: 5.3_
 
 - [ ] 12. Expert review and release
-  - [ ] 12.1 Prepare the review packet
+  - [x] 12.1 Prepare the review packet
     - Assemble the module set, parameter bounds, security defaults, sandbox
       policy, and the open questions (HTTPS, NAT per AZ, KMS keys) for the
       AWS-experienced reviewer.

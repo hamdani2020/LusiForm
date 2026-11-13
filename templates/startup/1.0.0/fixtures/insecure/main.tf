@@ -31,7 +31,7 @@ resource "aws_db_instance" "insecure" {
   identifier          = "lf-insecure-db"
   engine              = "postgres"
   engine_version      = "16"
-  instance_class      = "db.t4g.micro"
+  instance_class      = "db.t3.micro"
   allocated_storage   = 20
   username            = "app_admin"
   password            = var.db_password

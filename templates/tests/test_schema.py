@@ -204,7 +204,7 @@ def test_value_outside_allowed_set_is_rejected(
         ("compute.min_tasks", None, "an integer"),
         ("network.az_count", "2", "an integer"),
         ("compute.task_size", 1, "a string"),
-        ("database.instance_class", ["db.t4g.micro"], "a string"),
+        ("database.instance_class", ["db.t3.micro"], "a string"),
     ],
 )
 def test_wrong_type_is_rejected(

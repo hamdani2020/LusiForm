@@ -80,7 +80,7 @@ bounds below match the validated Architecture-stage screen.
 | `compute.task_size` | compute | enum | `0.25vcpu-0.5gb`, `0.5vcpu-1gb`, `1vcpu-2gb`, `2vcpu-4gb` | `0.25vcpu-0.5gb` |
 | `compute.min_tasks` | compute | integer | 1–10 | 2 |
 | `compute.max_tasks` | compute | integer | 2–20, `>= min_tasks` | 6 |
-| `database.instance_class` | database | enum | `db.t4g.micro`, `db.t4g.small`, `db.t4g.medium` | `db.t4g.micro` |
+| `database.instance_class` | database | enum | `db.t3.micro`, `db.t3.small`, `db.t3.medium` | `db.t3.micro` |
 | `database.storage_gb` | database | integer | 20–1000 | 20 |
 | `database.backup_retention_days` | database | integer | 1–35 | 7 |
 | `network.az_count` | network | enum | 1, 2 | 2 |

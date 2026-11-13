@@ -49,8 +49,8 @@ variable "instance_class" {
   type        = string
 
   validation {
-    condition     = contains(["db.t4g.micro", "db.t4g.small", "db.t4g.medium"], var.instance_class)
-    error_message = "instance_class must be one of db.t4g.micro, db.t4g.small, or db.t4g.medium."
+    condition     = contains(["db.t3.micro", "db.t3.small", "db.t3.medium"], var.instance_class)
+    error_message = "instance_class must be one of db.t3.micro, db.t3.small, or db.t3.medium."
   }
 }
 

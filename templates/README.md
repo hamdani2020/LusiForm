@@ -68,6 +68,22 @@ resource.
 - `status` in `template.json` is `draft`, `published`, or `retired`, and mirrors the
   `template_versions` row. A version cannot be `published` until
   `review.reviewed_by` and `review.reviewed_at` are set.
+- A published or retired version has `manifest.json`: the SHA-256 of every file in the
+  version directory except the manifest. `template.json` is hashed without `status`, so a
+  published version can be retired. Any edited, added, or removed file fails the check. A
+  draft has no manifest. Publishing a version means: record the review in `template.json`,
+  set `status` to `published`, then write the manifest. Never edit a published directory;
+  a manifest cannot stop a commit that changes a file and regenerates the manifest, so
+  review any diff under a published version as a failure.
+- The publish helper validates a version and prints the `template_versions` row values
+  (it writes nothing; the admin operator route stores the row):
+
+  ```
+  docker compose run --rm --no-deps -w /app/templates worker \
+    uv run --frozen --project /app/worker python -m template_tools.publication check startup/1.0.0
+  # ... manifest startup/1.0.0 [--check]    write or verify manifest.json
+  # ... row startup/1.0.0                   validate, print the row as JSON
+  ```
 - The tool pins in `template.json` (`terraform`, `tflint`, `checkov`) must equal the
   pins in `worker/Dockerfile`. A test fails if they drift.
 - Generated output is deterministic: the same parameters and template version give
