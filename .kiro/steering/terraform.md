@@ -29,6 +29,14 @@ rules these build on.
   on every template change.
 - A template version is immutable. Changing a module or its schema creates a new
   template version (draft → published → retired).
+- Published versions carry `manifest.json` (SHA-256 of every file). Never edit a
+  published directory; the publication check fails on any change. A version needs
+  `review.reviewed_by` and `review.reviewed_at` before it can be published.
+- There is no NAT gateway. Tasks run in public subnets with public IPs; security
+  groups are their only network control. A NAT option needs a new template version.
+- Run the template suite with `templates/scripts/run-tests.sh -q`; the full command
+  list is in `tech.md`. Module tests use a mocked AWS provider. Never `apply` from
+  `templates/`.
 
 ## Validation gate
 
@@ -41,6 +49,11 @@ Rendered projects must pass, in this order:
 
 Pin tflint and Checkov in the worker image. A high-severity Checkov finding
 blocks export and sandbox deployment, with no bypass.
+
+Run tflint with `--recursive --call-module-type=local` and the version's `tflint.hcl`;
+without `--recursive` it does not inspect resources inside modules. Open-source
+Checkov reports no severity, so severity is ours: a failing check not listed in the
+version's `fixtures/checkov-accepted.json` as LOW or MEDIUM is HIGH and blocks.
 
 ## Sandbox state and apply
 

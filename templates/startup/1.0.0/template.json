@@ -1,0 +1,18 @@
+{
+  "template": "startup",
+  "version": "1.0.0",
+  "status": "published",
+  "terraform": ">= 1.10.0",
+  "aws_provider": "~> 5.47",
+  "tools": {
+    "terraform": "1.10.5",
+    "tflint": "0.54.0",
+    "checkov": "3.4.3",
+    "tflint_ruleset_aws": "0.50.0"
+  },
+  "review": {
+    "reviewed_by": "Hamdani Gandi",
+    "reviewed_at": "2026-11-13",
+    "notes_ref": ".kiro/specs/startup-template/review-packet.md"
+  }
+}

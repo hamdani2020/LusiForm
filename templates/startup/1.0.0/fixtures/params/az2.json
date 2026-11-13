@@ -1,0 +1,14 @@
+{
+  "name": "az2",
+  "description": "Two zones with mid-range sizing and a standby database.",
+  "region": "us-east-1",
+  "name_prefix": "lf-fix-az2",
+  "project_name": "Fixture two zones",
+  "customer_name": "Example Customer",
+  "parameters": {
+    "network": { "az_count": 2 },
+    "compute": { "task_size": "1vcpu-2gb", "min_tasks": 2, "max_tasks": 8 },
+    "database": { "instance_class": "db.t3.small", "storage_gb": 100, "backup_retention_days": 14 },
+    "monitoring": { "log_retention_days": 90 }
+  }
+}

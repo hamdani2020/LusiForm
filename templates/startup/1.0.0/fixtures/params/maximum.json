@@ -1,0 +1,14 @@
+{
+  "name": "maximum",
+  "description": "Every parameter at the top of its allowed range, in two zones, in another region.",
+  "region": "eu-west-1",
+  "name_prefix": "lf-fix-maximum",
+  "project_name": "Fixture maximum",
+  "customer_name": "Example Customer",
+  "parameters": {
+    "network": { "az_count": 2 },
+    "compute": { "task_size": "2vcpu-4gb", "min_tasks": 10, "max_tasks": 20 },
+    "database": { "instance_class": "db.t3.medium", "storage_gb": 1000, "backup_retention_days": 35 },
+    "monitoring": { "log_retention_days": 365 }
+  }
+}
